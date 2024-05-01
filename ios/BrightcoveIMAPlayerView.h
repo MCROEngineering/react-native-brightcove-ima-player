@@ -25,6 +25,7 @@
 @property (nonatomic) BOOL adsPlaying;
 @property (nonatomic) BOOL autoPlay;
 @property (nonatomic) BOOL disableDefaultControl;
+@property (nonatomic) BOOL disablePictureInPicture;
 @property (nonatomic) float lastBufferProgress;
 @property (nonatomic) float targetVolume;
 @property (nonatomic) float targetBitRate;
@@ -48,6 +49,8 @@
 @property (nonatomic, copy) RCTDirectEventBlock onUpdateBufferProgress;
 @property (nonatomic, copy) RCTDirectEventBlock onEnterFullscreen;
 @property (nonatomic, copy) RCTDirectEventBlock onExitFullscreen;
+@property (nonatomic, copy) RCTDirectEventBlock onStartPictureInPicture;
+@property (nonatomic, copy) RCTDirectEventBlock onStopPictureInPicture;
 
 -(void) setupWithSettings:(NSString*)settings;
 -(void) seekTo:(NSNumber *)time;

@@ -74,6 +74,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
   private FullScreenHandler fullScreenHandler;
   private int controlbarTimeout = 4000;
+  private boolean captionExists = false;
 
   public BrightcoveIMAPlayerView(ThemedReactContext context, ReactApplicationContext applicationContext) {
     super(context);
@@ -130,6 +131,11 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
         BrightcoveIMAPlayerView.this.playing = true;
         WritableMap event = Arguments.createMap();
         ReactContext reactContext = (ReactContext) BrightcoveIMAPlayerView.this.getContext();
+        // add hasCaptions prop on event if the video hasCaptions
+        captionExists = BrightcoveIMAPlayerView.this.brightcoveVideoView.getClosedCaptioningController().checkIfCaptionsExist(
+                BrightcoveIMAPlayerView.this.brightcoveVideoView.getCurrentVideo()
+        );
+        event.putBoolean("hasCaptions", captionExists);
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_PLAY, event);
       }
     });
@@ -211,9 +217,9 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   public void setSettings(ReadableMap settings) {
     this.settings = settings;
     // disabling autoPlay coming from settings object
-    // if (settings != null && settings.hasKey("autoPlay")) {
-    //   this.autoPlay = settings.getBoolean("autoPlay");
-    // }
+    if (settings != null && settings.hasKey("autoPlay")) {
+      this.autoPlay = settings.getBoolean("autoPlay");
+    }
   }
 
   public void setPolicyKey(String policyKey) {
@@ -264,6 +270,19 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       this.brightcoveVideoView.getEventEmitter().emit(EventType.EXIT_FULL_SCREEN);
     }
   }
+
+  public void showCaptionsDialog() {
+    captionExists = this.brightcoveVideoView.getClosedCaptioningController().checkIfCaptionsExist(
+        this.brightcoveVideoView.getCurrentVideo()
+    );
+    // Emit event
+    if (captionExists) {
+        this.brightcoveVideoView.getClosedCaptioningController().showCaptionsDialog();
+    }
+
+  }
+
+
 
   public void toggleFullscreen(boolean isFullscreen) {
     if (isFullscreen) {
@@ -385,9 +404,9 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   private void playVideo(Video video) {
     BrightcoveIMAPlayerView.this.brightcoveVideoView.clear();
     BrightcoveIMAPlayerView.this.brightcoveVideoView.add(video);
-    // if (BrightcoveIMAPlayerView.this.autoPlay) {
-    //   BrightcoveIMAPlayerView.this.brightcoveVideoView.start();
-    // }
+    if (BrightcoveIMAPlayerView.this.autoPlay) {
+      BrightcoveIMAPlayerView.this.brightcoveVideoView.start();
+    }
   }
 
   private void fixVideoLayout() {

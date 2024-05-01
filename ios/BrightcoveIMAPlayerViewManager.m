@@ -23,6 +23,7 @@ RCT_EXPORT_VIEW_PROPERTY(autoPlay, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(play, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(fullscreen, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(disableDefaultControl, BOOL);
+RCT_EXPORT_VIEW_PROPERTY(disablePictureInPicture, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(volume, NSNumber);
 RCT_EXPORT_VIEW_PROPERTY(bitRate, NSNumber);
 RCT_EXPORT_VIEW_PROPERTY(adVideoLoadTimeout, NSNumber);
@@ -37,6 +38,8 @@ RCT_EXPORT_VIEW_PROPERTY(onChangeDuration, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onUpdateBufferProgress, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onEnterFullscreen, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onExitFullscreen, RCTDirectEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onStartPictureInPicture, RCTDirectEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onStopPictureInPicture, RCTDirectEventBlock);
 
 RCT_CUSTOM_VIEW_PROPERTY(settings, NSDictionary, BrightcoveIMAPlayerView) {
     if ([json isKindOfClass:[NSDictionary class]]) {

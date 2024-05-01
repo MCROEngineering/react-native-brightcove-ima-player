@@ -24,6 +24,7 @@ type TBrightcoveIMAPlayerSettings = {
 
 type TBrightcoveIMAPlayerEventBase = {
   target: number;
+  hasCaptions?: boolean;
 };
 
 type TBrightcoveIMAPlayerEventProgress = TBrightcoveIMAPlayerEventBase & {
@@ -47,6 +48,7 @@ type BrightcoveIMAPlayerProps = ViewProps & {
   play?: boolean;
   fullscreen?: boolean;
   disableDefaultControl?: boolean;
+  disablePictureInPicture?: boolean;
   volume?: number;
   bitRate?: number;
   /**
@@ -78,6 +80,12 @@ type BrightcoveIMAPlayerProps = ViewProps & {
     event: NativeSyntheticEvent<TBrightcoveIMAPlayerEventBase>
   ) => void;
   onExitFullscreen?: (
+    event: NativeSyntheticEvent<TBrightcoveIMAPlayerEventBase>
+  ) => void;
+  onStartPictureInPicture?: (
+    event: NativeSyntheticEvent<TBrightcoveIMAPlayerEventBase>
+  ) => void;
+  onStopPictureInPicture?: (
     event: NativeSyntheticEvent<TBrightcoveIMAPlayerEventBase>
   ) => void;
 };
@@ -125,6 +133,19 @@ export class BrightcoveIMAPlayer extends Component<BrightcoveIMAPlayerProps> {
       findNodeHandle(this),
       UIManager.getViewManagerConfig(ComponentName).Commands.toggleInViewPort,
       [inViewPort]
+    );
+  };
+
+  showCaptionsDialog = () => {
+    if (Platform.OS !== 'android') {
+      console.warn('toggleCaptions is only available on Android');
+      return;
+    }
+
+    UIManager.dispatchViewManagerCommand(
+      findNodeHandle(this),
+      UIManager.getViewManagerConfig(ComponentName).Commands.showCaptionsDialog,
+      []
     );
   };
 

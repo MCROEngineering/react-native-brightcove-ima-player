@@ -33,14 +33,15 @@
 }
 
 - (void)setupWithSettings:(NSDictionary*)settings {
-    BCOVPUIPlayerViewOptions *options = [[BCOVPUIPlayerViewOptions alloc] init];
-    options.jumpBackInterval = 999;
-    [options setLearnMoreButtonBrowserStyle:BCOVPUILearnMoreButtonUseInAppBrowser];
-    options.presentingViewController = RCTPresentedViewController();
-    options.automaticControlTypeSelection = YES;
-    BCOVPUIBasicControlView *control = [BCOVPUIBasicControlView basicControlViewWithVODLayout];
-    [control.progressSlider setTrackHeight:2];
-    [control.progressSlider setMinimumTrackTintColor:[UIColor colorWithRed:0.22f green:0.64f blue:0.84f alpha:1.0f]];
+    BCOVPUIPlayerViewOptions *options;
+    if (!_disableDefaultControl) {
+        options = [[BCOVPUIPlayerViewOptions alloc] init];
+        options.presentingViewController = RCTPresentedViewController();
+        options.automaticControlTypeSelection = YES;
+        if (_disablePictureInPicture == false) {
+            options.showPictureInPictureButton = YES;
+        }
+    }
 
     NSString * kViewControllerIMAPublisherID = [settings objectForKey:@"publisherProvidedID"];
     NSString * kViewControllerIMALanguage = @"en";
@@ -88,14 +89,14 @@
     [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&error];
 
     BOOL autoAdvance = [settings objectForKey:@"autoAdvance"] != nil ? [[settings objectForKey:@"autoAdvance"] boolValue] : NO;
-    BOOL autoPlay = NO; //[settings objectForKey:@"autoPlay"] != nil ? [[settings objectForKey:@"autoPlay"] boolValue] : YES;
+    BOOL autoPlay = [settings objectForKey:@"autoPlay"] != nil ? [[settings objectForKey:@"autoPlay"] boolValue] : YES;
     BOOL allowsExternalPlayback = [settings objectForKey:@"allowsExternalPlayback"] != nil ? [[settings objectForKey:@"allowsExternalPlayback"] boolValue] : YES;
 
     _playbackController.autoAdvance = autoAdvance;
     _playbackController.autoPlay = autoPlay;
     _playbackController.allowsExternalPlayback = allowsExternalPlayback;
 
-    _playerView = [[BCOVPUIPlayerView alloc] initWithPlaybackController:self.playbackController options:nil controlsView:[BCOVPUIBasicControlView basicControlViewWithVODLayout] ];
+    _playerView = [[BCOVPUIPlayerView alloc] initWithPlaybackController:self.playbackController options:options controlsView:[BCOVPUIBasicControlView basicControlViewWithVODLayout] ];
     if (_disableDefaultControl == true) {
         _playerView.controlsView.hidden = true;
     }
@@ -223,6 +224,10 @@
     _playerView.controlsView.hidden = disable;
 }
 
+- (void)setDisablePictureInPicture:(BOOL)disable {
+    _disablePictureInPicture = disable;
+}
+
 - (void)seekTo:(NSNumber *)time {
     [_playbackController seekToTime:CMTimeMakeWithSeconds([time floatValue], NSEC_PER_SEC) completionHandler:^(BOOL finished) {
     }];
@@ -284,13 +289,9 @@
 - (void)handleAppStateDidChange:(NSNotification *)notification
 {
     if ([notification.name isEqualToString:UIApplicationDidEnterBackgroundNotification]) {
-        [self toggleInViewPort:NO];
-        [self pause];
     }
     
     if ([notification.name isEqualToString:UIApplicationDidBecomeActiveNotification]) {
-        [self toggleInViewPort:YES];
-        [self pause];
     }
 }
 
@@ -316,9 +317,9 @@
             self.onReady(@{});
         }
         // disabling this due to video blip before pre-roll
-//        if (_autoPlay) {
-//            [_playbackController play];
-//        }
+        if (_autoPlay) {
+            [_playbackController play];
+        }
     } else if (lifecycleEvent.eventType == kBCOVPlaybackSessionLifecycleEventPlay) {
         _playing = true;
         [self refreshPlaybackRate];
@@ -470,14 +471,37 @@
     //NSLog(@"BC - DEBUG - IMAAdsRequest.vastLoadTimeout set to %.1f milliseconds.", adsRequest.vastLoadTimeout);
 }
 
-#pragma mark - IMALinkOpenerDelegate Methods
+#pragma mark - BCOVPUIPlayerViewDelegate Methods
 
-- (void)linkOpenerDidCloseInAppLink:(NSObject *)linkOpener
+- (void)pictureInPictureControllerDidStartPictureInPicture:(AVPictureInPictureController *)pictureInPictureController
 {
-    // Called when the in-app browser has closed.
-    if (_adsPlaying) {
-        [self.playbackController resumeAd];
+    NSLog(@"pictureInPictureControllerDidStartPictureInPicture");
+}
+
+- (void)pictureInPictureControllerDidStopPictureInPicture:(AVPictureInPictureController *)pictureInPictureController
+{
+    NSLog(@"pictureInPictureControllerDidStopPictureInPicture");
+}
+
+- (void)pictureInPictureControllerWillStartPictureInPicture:(AVPictureInPictureController *)pictureInPictureController
+{
+    if (self.onStartPictureInPicture) {
+        self.onStartPictureInPicture(@{});
     }
 }
+
+- (void)pictureInPictureControllerWillStopPictureInPicture:(AVPictureInPictureController *)pictureInPictureController
+{
+    if (self.onStopPictureInPicture) {
+        self.onStopPictureInPicture(@{});
+    }
+}
+
+- (void)pictureInPictureController:(AVPictureInPictureController *)pictureInPictureController failedToStartPictureInPictureWithError:(NSError *)error
+{
+    NSLog(@"failedToStartPictureInPictureWithError: %@", error.localizedDescription);
+}
+
+#pragma mark - IMALinkOpenerDelegate Methods
 
 @end
