@@ -19,7 +19,7 @@ type TBrightcoveIMAPlayerSettings = {
   autoAdvance?: boolean; // iOS only
   autoPlay?: boolean;
   allowsExternalPlayback?: boolean; // iOS only
-  publisherProvidedID?: string;
+  adConfigId?: string;
 };
 
 type TBrightcoveIMAPlayerEventBase = {
@@ -153,6 +153,14 @@ export class BrightcoveIMAPlayer extends Component<BrightcoveIMAPlayerProps> {
     UIManager.dispatchViewManagerCommand(
       findNodeHandle(this),
       UIManager.getViewManagerConfig(ComponentName).Commands.stopPlayback,
+      []
+    );
+  };
+  
+  destroy = () => {
+    UIManager.dispatchViewManagerCommand(
+      findNodeHandle(this),
+      Platform.OS === 'ios' ? UIManager.getViewManagerConfig(ComponentName).Commands.stopPlayback : UIManager.getViewManagerConfig(ComponentName).Commands.destroy,
       []
     );
   };

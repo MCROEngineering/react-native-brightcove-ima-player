@@ -487,6 +487,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       // display container created above.
       AdsRequest adsRequest = sdkFactory.createAdsRequest();
       adsRequest.setAdTagUrl(IMAUrl);
+      adsRequest.setAdWillAutoPlay(true);
 
       ArrayList<AdsRequest> adsRequests = new ArrayList<>(1);
       adsRequests.add(adsRequest);

@@ -33,54 +33,19 @@
 }
 
 - (void)setupWithSettings:(NSDictionary*)settings {
-    BCOVPUIPlayerViewOptions *options;
-    if (!_disableDefaultControl) {
-        options = [[BCOVPUIPlayerViewOptions alloc] init];
-        options.presentingViewController = RCTPresentedViewController();
-        options.automaticControlTypeSelection = YES;
-        if (_disablePictureInPicture == false) {
-            options.showPictureInPictureButton = YES;
-        }
-    }
-
-    NSString * kViewControllerIMAPublisherID = [settings objectForKey:@"publisherProvidedID"];
-    NSString * kViewControllerIMALanguage = @"en";
-
-    IMASettings *imaSettings = [[IMASettings alloc] init];
-    if (kViewControllerIMAPublisherID != nil) {
-        imaSettings.ppid = kViewControllerIMAPublisherID;
-    }
-    imaSettings.language = kViewControllerIMALanguage;
-    imaSettings.autoPlayAdBreaks = NO;
-
-    IMAAdsRenderingSettings *renderSettings = [[IMAAdsRenderingSettings alloc] init];
-    renderSettings.linkOpenerPresentingController = RCTPresentedViewController();
-    renderSettings.linkOpenerDelegate = self;
-    renderSettings.enablePreloading = YES; // default is yes anyway
-
-    // Timeout (in seconds) when loading a video ad media file. If loading takes longer than this timeout, the ad playback is canceled and the next ad in the pod plays, if available. Use -1 for the default of 8 seconds.
-    if (_targetAdVideoLoadTimeout == 0) {
-        renderSettings.loadVideoTimeout = 3.;
-    } else {
-        renderSettings.loadVideoTimeout = _targetAdVideoLoadTimeout;
-    }
-
-    NSString *IMAUrl = [settings objectForKey:@"IMAUrl"];
-    BCOVIMAAdsRequestPolicy *adsRequestPolicy = [BCOVIMAAdsRequestPolicy adsRequestPolicyWithVMAPAdTagUrl:IMAUrl];
-    
-    NSDictionary *imaPlaybackSessionOptions = @{ kBCOVIMAOptionIMAPlaybackSessionDelegateKey: self };
-    
     BCOVPlayerSDKManager *manager = [BCOVPlayerSDKManager sharedManager];
 
-    _playbackController = [manager
-                           createIMAPlaybackControllerWithSettings:imaSettings
-                           adsRenderingSettings:renderSettings
-                           adsRequestPolicy:adsRequestPolicy
-                           adContainer:self.playerView.contentOverlayView
-                           viewController:RCTPresentedViewController()
-                           companionSlots:nil
-                           viewStrategy:nil
-                           options:imaPlaybackSessionOptions];
+    BCOVSSAIAdComponentDisplayContainer *adComponentDisplayContainer = [[BCOVSSAIAdComponentDisplayContainer alloc] initWithCompanionSlots:@[]];
+
+    self.fairplayAuthProxy = [[BCOVFPSBrightcoveAuthProxy alloc] initWithPublisherId:nil applicationId:nil];
+
+    id<BCOVPlaybackSessionProvider> fairplaySessionProvider = [manager createFairPlaySessionProviderWithAuthorizationProxy:self.fairplayAuthProxy upstreamSessionProvider:nil];
+    
+    id<BCOVPlaybackSessionProvider> ssaiSessionProvider = [manager createSSAISessionProviderWithUpstreamSessionProvider:fairplaySessionProvider];
+    
+    _playbackController = [manager createPlaybackControllerWithSessionProvider:ssaiSessionProvider viewStrategy:nil];
+
+    [_playbackController addSessionConsumer:adComponentDisplayContainer];
     
     _playbackController.delegate = self;
 
@@ -91,24 +56,34 @@
     BOOL autoAdvance = [settings objectForKey:@"autoAdvance"] != nil ? [[settings objectForKey:@"autoAdvance"] boolValue] : NO;
     BOOL autoPlay = [settings objectForKey:@"autoPlay"] != nil ? [[settings objectForKey:@"autoPlay"] boolValue] : YES;
     BOOL allowsExternalPlayback = [settings objectForKey:@"allowsExternalPlayback"] != nil ? [[settings objectForKey:@"allowsExternalPlayback"] boolValue] : YES;
+    _adConfigId = [settings objectForKey:@"adConfigId"] != nil ? [[settings objectForKey:@"adConfigId"] stringValue] : @"";
 
     _playbackController.autoAdvance = autoAdvance;
     _playbackController.autoPlay = autoPlay;
     _playbackController.allowsExternalPlayback = allowsExternalPlayback;
 
-    _playerView = [[BCOVPUIPlayerView alloc] initWithPlaybackController:self.playbackController options:options controlsView:[BCOVPUIBasicControlView basicControlViewWithVODLayout] ];
+    _targetVolume = 1.0;
+       _autoPlay = autoPlay;
+       // default is in view
+       _inViewPort = YES;
+
+    BCOVPUIPlayerViewOptions *options;
+    if (!_disableDefaultControl) {
+        options = [[BCOVPUIPlayerViewOptions alloc] init];
+        options.presentingViewController = RCTPresentedViewController();
+        options.automaticControlTypeSelection = YES;
+        if (_disablePictureInPicture == false) {
+            options.showPictureInPictureButton = YES;
+        }
+    }
+    
+    _playerView = [[BCOVPUIPlayerView alloc] initWithPlaybackController:_playbackController options:options controlsView:[BCOVPUIBasicControlView basicControlViewWithVODLayout] ];
     if (_disableDefaultControl == true) {
         _playerView.controlsView.hidden = true;
     }
     _playerView.delegate = self;
     _playerView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
     _playerView.backgroundColor = UIColor.blackColor;
-    _playerView.playbackController = _playbackController;
-
-    _targetVolume = 1.0;
-       _autoPlay = autoPlay;
-       // default is in view
-       _inViewPort = YES;
     
     [self addSubview:_playerView];
 }
@@ -123,13 +98,19 @@
 - (void)loadMovie {
     if (!_playbackService) return;
     if (_videoId) {
-        [_playbackService findVideoWithVideoID:_videoId parameters:nil completion:^(BCOVVideo *video, NSDictionary *jsonResponse, NSError *error) {
-            if (video) {
+        NSMutableDictionary *parameters = [[NSMutableDictionary alloc] init];
+        if (_adConfigId) {
+            parameters[kBCOVPlaybackServiceParamaterKeyAdConfigId] = _adConfigId;
+        }
+        NSDictionary *configuration = @{kBCOVPlaybackServiceConfigurationKeyAssetID:_videoId};
+        [_playbackService findVideoWithConfiguration:configuration queryParameters:parameters completion:^(BCOVVideo *video, NSDictionary *jsonResponse, NSError *error) {
+            if (video != nil) {
                 [self.playbackController setVideos: @[ video ]];
             }
         }];
     }
 }
+
 
 - (id<BCOVPlaybackController>)createPlaybackController {
     BCOVBasicSessionProviderOptions *options = [BCOVBasicSessionProviderOptions alloc];

@@ -26,6 +26,7 @@ public class BrightcoveIMAPlayerViewManager extends SimpleViewManager<Brightcove
   public static final int COMMAND_TOGGLE_FULLSCREEN = 5;
   public static final int COMMAND_TOGGLE_IN_VIEW_PORT = 6;
   public static final int COMMAND_SHOW_CAPTIONS_DIALOG = 7;
+  public static final int COMMAND_DESTROY = 8;
   public static final String EVENT_ADS_LOADED = "ads_loaded";
   public static final String EVENT_READY = "ready";
   public static final String EVENT_PLAY = "play";
@@ -132,7 +133,9 @@ public class BrightcoveIMAPlayerViewManager extends SimpleViewManager<Brightcove
       "toggleInViewPort",
       COMMAND_TOGGLE_IN_VIEW_PORT,
       "showCaptionsDialog",
-      COMMAND_SHOW_CAPTIONS_DIALOG
+      COMMAND_SHOW_CAPTIONS_DIALOG,
+      "destroy",
+      COMMAND_DESTROY
     );
   }
 
@@ -167,6 +170,10 @@ public class BrightcoveIMAPlayerViewManager extends SimpleViewManager<Brightcove
       }
       case COMMAND_SHOW_CAPTIONS_DIALOG: {
         view.showCaptionsDialog();
+        return;
+      }
+      case COMMAND_DESTROY: {
+        view.destroy();
         return;
       }
     }

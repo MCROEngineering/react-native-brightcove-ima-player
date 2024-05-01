@@ -9,6 +9,7 @@
 #import <BrightcovePlayerSDK/BCOVPlaybackSession.h>
 #import <BrightcovePlayerSDK/BCOVPUISlider.h>
 #import <BrightcovePlayerSDK/BCOVOfflineVideoManager.h>
+#import <BrightcoveSSAI/BrightcoveSSAI.h>
 #import <React/RCTBridge.h>
 #import <React/UIView+React.h>
 
@@ -21,6 +22,7 @@
 @property (nonatomic) id<BCOVPlaybackController> playbackController;
 @property (nonatomic) id<BCOVPlaybackSession> playbackSession;
 @property (nonatomic) BCOVPUIPlayerView *playerView;
++@property (nonatomic, strong) BCOVFPSBrightcoveAuthProxy *fairplayAuthProxy;
 @property (nonatomic) BOOL playing;
 @property (nonatomic) BOOL adsPlaying;
 @property (nonatomic) BOOL autoPlay;
@@ -39,6 +41,7 @@
 @property (nonatomic, copy) NSString *videoId;
 @property (nonatomic, copy) NSString *accountId;
 @property (nonatomic, copy) NSString *policyKey;
+@property (nonatomic, copy) NSString *adConfigId;
 @property (nonatomic, copy) RCTDirectEventBlock onAdsLoaded;
 @property (nonatomic, copy) RCTDirectEventBlock onReady;
 @property (nonatomic, copy) RCTDirectEventBlock onPlay;
