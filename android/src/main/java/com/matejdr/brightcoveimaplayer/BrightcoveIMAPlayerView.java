@@ -109,7 +109,6 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
     eventEmitter = this.brightcoveVideoView.getEventEmitter();
 
-    // Use a procedural abstraction to setup the Google IMA SDK via the plugin.
     setupSSAI();
 
     eventEmitter.on(EventType.VIDEO_SIZE_KNOWN, new EventListener() {
@@ -405,14 +404,11 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       .setPolicy(this.policyKey)
       .build();
 
-    Log.d("SSAIPLUGIN VIDEO ID", this.videoId);
-    Log.d("SSAIPLUGIN AD CONFIG ID", this.adConfigId);
-
     HttpRequestConfig httpRequestConfig = new HttpRequestConfig.Builder()
       .addQueryParameter(HttpRequestConfig.KEY_AD_CONFIG_ID, this.adConfigId)
       .build();
 
-    plugin.addListener("didSelectSource", new EventListener() {
+    plugin.addListener("didSetSource", new EventListener() {
       @Override
       public void processEvent(Event event) {
         BrightcoveIMAPlayerView.this.brightcoveVideoView.start();
@@ -459,6 +455,8 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     // Enable Logging upon ad completion.
     eventEmitter.on(EventType.AD_COMPLETED, event -> {
       adsPlaying = false;
+      this.fullScreenHandler = new FullScreenHandler(context, this.brightcoveVideoView, this);
+      this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView);
     });
     // Enable Logging upon ad break completion.
     eventEmitter.on(EventType.AD_BREAK_COMPLETED, event -> {
