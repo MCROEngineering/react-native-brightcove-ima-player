@@ -119,7 +119,7 @@ public class BrightcoveIMAPlayerViewManager extends SimpleViewManager<Brightcove
 
   @Override
   public Map<String, Integer> getCommandsMap() {
-    return MapBuilder.of(
+    Map commandsMap = MapBuilder.of(
       "seekTo",
       COMMAND_SEEK_TO,
       "play",
@@ -133,10 +133,12 @@ public class BrightcoveIMAPlayerViewManager extends SimpleViewManager<Brightcove
       "toggleInViewPort",
       COMMAND_TOGGLE_IN_VIEW_PORT,
       "showCaptionsDialog",
-      COMMAND_SHOW_CAPTIONS_DIALOG,
-      "destroy",
-      COMMAND_DESTROY
+      COMMAND_SHOW_CAPTIONS_DIALOG
     );
+
+    commandsMap.put("destroy", COMMAND_DESTROY);
+
+    return commandsMap;
   }
 
   @Override
