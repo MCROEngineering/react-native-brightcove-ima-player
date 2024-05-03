@@ -35,6 +35,11 @@ public class DefaultEventEmitter implements EventEmitter {
   }
 
   @Override
+  public void emitNow(String s, Map<String, Object> map) {
+    
+  }
+
+  @Override
   public void emit(String s, Map<String, Object> map) {
 
   }

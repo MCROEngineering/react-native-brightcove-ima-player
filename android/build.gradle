@@ -65,6 +65,7 @@ dependencies {
     implementation 'com.google.ads.interactivemedia.v3:interactivemedia:'+GOOGLE_IMA_SDK_VERSION
     implementation 'com.google.android.gms:play-services-ads:'+PLAY_SERVICES_VERSION
     implementation "androidx.legacy:legacy-support-v4:${ANDROIDX_LEGACY_SUPPORT_V4}"
+    implementation "com.brightcove.player:android-ssai-plugin:${BRIGHTCOVE_VERSION}"
     implementation "com.brightcove.player:exoplayer2:${BRIGHTCOVE_VERSION}"
     implementation "androidx.media:media:${ANDROIDX_MEDIA}"
 }

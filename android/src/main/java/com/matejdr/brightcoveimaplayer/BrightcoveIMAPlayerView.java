@@ -24,8 +24,10 @@ import com.brightcove.player.event.EventType;
 import com.brightcove.player.mediacontroller.BrightcoveMediaController;
 import com.brightcove.player.mediacontroller.BrightcoveSeekBar;
 import com.brightcove.player.model.Video;
+import com.brightcove.player.network.HttpRequestConfig;
 import com.brightcove.player.view.BaseVideoView;
 import com.brightcove.player.view.BrightcoveExoPlayerVideoView;
+import com.brightcove.ssai.SSAIComponent;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -61,6 +63,8 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   private String policyKey;
   private String accountId;
   private String videoId;
+
+  private String adConfigId;
   private boolean autoPlay = false;
   private boolean playing = false;
   private boolean adsPlaying = false;
@@ -71,6 +75,8 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   private float playbackRate = 1;
   private EventEmitter eventEmitter;
   private GoogleIMAComponent googleIMAComponent;
+
+  private SSAIComponent plugin;
 
   private FullScreenHandler fullScreenHandler;
   private int controlbarTimeout = 4000;
@@ -101,13 +107,10 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
     ViewCompat.setTranslationZ(this, 9999);
 
-    // *** This method call is optional *** //
-    setupAdMarkers(this.brightcoveVideoView);
-
     eventEmitter = this.brightcoveVideoView.getEventEmitter();
 
     // Use a procedural abstraction to setup the Google IMA SDK via the plugin.
-    setupGoogleIMA();
+    setupSSAI();
 
     eventEmitter.on(EventType.VIDEO_SIZE_KNOWN, new EventListener() {
       @Override
@@ -194,7 +197,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     eventEmitter.on(EventType.VIDEO_DURATION_CHANGED, new EventListener() {
       @Override
       public void processEvent(Event e) {
-        Integer duration = (Integer) e.properties.get(Event.VIDEO_DURATION);
+        Long duration = (Long) e.properties.get(Event.VIDEO_DURATION);
         WritableMap event = Arguments.createMap();
         event.putDouble("duration", duration / 1000d);
         ReactContext reactContext = (ReactContext) BrightcoveIMAPlayerView.this.getContext();
@@ -211,7 +214,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_UPDATE_BUFFER_PROGRESS, event);
       }
     });
-  
+
   }
 
   public void setSettings(ReadableMap settings) {
@@ -219,6 +222,9 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     // disabling autoPlay coming from settings object
     if (settings != null && settings.hasKey("autoPlay")) {
       this.autoPlay = settings.getBoolean("autoPlay");
+    }
+    if (settings != null && settings.hasKey("adConfigId")) {
+      this.setAdConfigId(settings.getString("adConfigId"));
     }
   }
 
@@ -235,6 +241,10 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   public void setVideoId(String videoId) {
     this.videoId = videoId;
     this.loadVideo();
+  }
+
+  public void setAdConfigId(String adConfigId) {
+    this.adConfigId = adConfigId;
   }
 
   public void setAutoPlay(boolean autoPlay) {
@@ -281,8 +291,6 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     }
 
   }
-
-
 
   public void toggleFullscreen(boolean isFullscreen) {
     if (isFullscreen) {
@@ -334,6 +342,8 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
         this.googleIMAComponent.getVideoAdPlayer().stopAd();
       }
       this.brightcoveVideoView.stopPlayback();
+      this.brightcoveVideoView.destroyDrawingCache();
+      this.brightcoveVideoView.clear();
     }
   }
 
@@ -353,7 +363,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       // TODO upgrade to pauseAd(AdMediaInfo)
       this.googleIMAComponent.getVideoAdPlayer().pause();
     } else if (this.playing && this.brightcoveVideoView != null) {
-      this.brightcoveVideoView.pause(); 
+      this.brightcoveVideoView.pause();
     }
   }
 
@@ -391,14 +401,29 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       return;
     }
     Catalog catalog = new Catalog.Builder(eventEmitter, this.accountId)
+      .setBaseURL(Catalog.DEFAULT_EDGE_BASE_URL)
       .setPolicy(this.policyKey)
       .build();
 
+    Log.d("SSAIPLUGIN VIDEO ID", this.videoId);
+    Log.d("SSAIPLUGIN AD CONFIG ID", this.adConfigId);
+
+    HttpRequestConfig httpRequestConfig = new HttpRequestConfig.Builder()
+      .addQueryParameter(HttpRequestConfig.KEY_AD_CONFIG_ID, this.adConfigId)
+      .build();
+
+    plugin.addListener("didSelectSource", new EventListener() {
+      @Override
+      public void processEvent(Event event) {
+        BrightcoveIMAPlayerView.this.brightcoveVideoView.start();
+      }
+    });
+
     if (this.videoId != null) {
-      catalog.findVideoByID(this.videoId, new VideoListener() {
+      catalog.findVideoByID(this.videoId, httpRequestConfig, new VideoListener() {
         @Override
         public void onVideo(Video video) {
-          playVideo(video);
+          plugin.processVideo(video);
         }
 
         @Override
@@ -406,14 +431,6 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
           Log.e(TAG, errors.toString());
         }
       });
-    }
-  }
-
-  private void playVideo(Video video) {
-    BrightcoveIMAPlayerView.this.brightcoveVideoView.clear();
-    BrightcoveIMAPlayerView.this.brightcoveVideoView.add(video);
-    if (BrightcoveIMAPlayerView.this.autoPlay) {
-      BrightcoveIMAPlayerView.this.brightcoveVideoView.start();
     }
   }
 
@@ -429,41 +446,10 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     surfaceView.layout(leftOffset, topOffset, leftOffset + surfaceWidth, topOffset + surfaceHeight);
   }
 
-  /*
-    This methods show how to get the Google IMA AdsManager, get the cue points and add the markers
-    to the Brightcove Seek Bar.
-   */
-  private void setupAdMarkers(BaseVideoView videoView) {
-    final BrightcoveMediaController mediaController = this.brightcoveVideoView.getBrightcoveMediaController();
-
-    // Add "Ad Markers" where the Ads Manager says ads will appear.
-    mediaController.addListener(GoogleIMAEventType.ADS_MANAGER_LOADED, event -> {
-      AdsManager manager = (AdsManager) event.properties.get("adsManager");
-      List<Float> cuepoints = manager.getAdCuePoints();
-      for (int i = 0; i < cuepoints.size(); i++) {
-        Float cuepoint = cuepoints.get(i);
-        BrightcoveSeekBar brightcoveSeekBar = mediaController.getBrightcoveSeekBar();
-        // If cuepoint is negative it means it is a POST ROLL.
-        int markerTime = cuepoint < 0 ? brightcoveSeekBar.getMax() : (int) (cuepoint * DateUtils.SECOND_IN_MILLIS);
-        mediaController.getBrightcoveSeekBar().addMarker(markerTime);
-      }
-
-      // fire off ADS_LOADED event
-      WritableMap adEvent = Arguments.createMap();
-      ReactContext reactContext = (ReactContext) BrightcoveIMAPlayerView.this.getContext();
-      reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_ADS_LOADED, adEvent);
-
-    });
-    videoView.setMediaController(mediaController);
-  }
-
   /**
    * Setup the Brightcove IMA Plugin.
    */
-  private void setupGoogleIMA() {
-    // Establish the Google IMA SDK factory instance.
-    final ImaSdkFactory sdkFactory = ImaSdkFactory.getInstance();
-
+  private void setupSSAI() {
     // Enable logging up ad start.
     eventEmitter.on(EventType.AD_STARTED, event -> {
       adsPlaying = true;
@@ -486,44 +472,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       }
     });
 
-    // Set up a listener for initializing AdsRequests. 
-    eventEmitter.on(GoogleIMAEventType.ADS_REQUEST_FOR_VIDEO, event -> {
-      String IMAUrl = settings != null && settings.hasKey("IMAUrl") ?
-        settings.getString("IMAUrl") : "";
-
-      // Build an ads request object and point it to the ad
-      // display container created above.
-      AdsRequest adsRequest = sdkFactory.createAdsRequest();
-      adsRequest.setAdTagUrl(IMAUrl);
-      adsRequest.setAdWillAutoPlay(true);
-
-      ArrayList<AdsRequest> adsRequests = new ArrayList<>(1);
-      adsRequests.add(adsRequest);
-
-      // Respond to the event with the new ad requests.
-      event.properties.put(GoogleIMAComponent.ADS_REQUESTS, adsRequests);
-      eventEmitter.respond(event);
-    });
-
-    final ImaSdkSettings imaSdkSettings = sdkFactory.createImaSdkSettings();
-    imaSdkSettings.setLanguage("en");
-    if (settings != null && settings.hasKey("publisherProvidedID")) {
-      imaSdkSettings.setPpid(settings.getString("publisherProvidedID"));
-    }
-
-    AdsRenderingSettings adsRenderingSettings =
-    ImaSdkFactory.getInstance().createAdsRenderingSettings();
-    // preload ads
-    adsRenderingSettings.setEnablePreloading(true);
-
-    // Create the Brightcove IMA Plugin and pass in the event
-    // emitter so that the plugin can integrate with the SDK.
-    googleIMAComponent = new GoogleIMAComponent.Builder(this.brightcoveVideoView, eventEmitter)
-      .setUseAdRules(true)
-      .setLoadVideoTimeout(adVideoLoadTimeout)
-      .setAdsRenderingSettings(adsRenderingSettings)
-      .setImaSdkSettings(imaSdkSettings)
-      .build();
+    plugin = new SSAIComponent(this.context, this.brightcoveVideoView);
   }
 
   @Override
@@ -567,4 +516,5 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       child.layout(0, 0, child.getMeasuredWidth(), child.getMeasuredHeight());
     }
   }
+
 }
