@@ -156,7 +156,7 @@ export class BrightcoveIMAPlayer extends Component<BrightcoveIMAPlayerProps> {
       []
     );
   };
-  
+
   destroy = () => {
     UIManager.dispatchViewManagerCommand(
       findNodeHandle(this),
@@ -183,6 +183,7 @@ export class BrightcoveIMAPlayer extends Component<BrightcoveIMAPlayerProps> {
 
   render() {
     return (
+      // @ts-ignore
       <BrightcoveIMAPlayerView
         // ref={(e: React.RefObject<BrightcoveIMAPlayer>) => (this._root = e)}
         {...this.props}
