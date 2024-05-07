@@ -22,7 +22,6 @@
 @property (nonatomic) id<BCOVPlaybackController> playbackController;
 @property (nonatomic) id<BCOVPlaybackSession> playbackSession;
 @property (nonatomic) BCOVPUIPlayerView *playerView;
-@property (nonatomic, strong) BCOVFPSBrightcoveAuthProxy *fairplayAuthProxy;
 @property (nonatomic) BOOL playing;
 @property (nonatomic) BOOL adsPlaying;
 @property (nonatomic) BOOL autoPlay;

@@ -1,7 +1,7 @@
 #import "BrightcoveIMAPlayerView.h"
 #import <React/RCTUtils.h>
 
-@interface BrightcoveIMAPlayerView () <IMALinkOpenerDelegate, BCOVPlaybackControllerDelegate, BCOVPUIPlayerViewDelegate, BCOVPlaybackControllerAdsDelegate, BCOVIMAPlaybackSessionDelegate>
+@interface BrightcoveIMAPlayerView () <BCOVPlaybackControllerDelegate, BCOVPUIPlayerViewDelegate, BCOVPlaybackControllerAdsDelegate>
 
 @end
 
@@ -46,15 +46,10 @@
     } else {
         BCOVSSAIAdComponentDisplayContainer *adComponentDisplayContainer = [[BCOVSSAIAdComponentDisplayContainer alloc] initWithCompanionSlots:@[]];
         
-        self.fairplayAuthProxy = [[BCOVFPSBrightcoveAuthProxy alloc] initWithPublisherId:nil applicationId:nil];
-        
-        id<BCOVPlaybackSessionProvider> fairplaySessionProvider = [manager createFairPlaySessionProviderWithAuthorizationProxy:self.fairplayAuthProxy upstreamSessionProvider:nil];
-        
-        id<BCOVPlaybackSessionProvider> ssaiSessionProvider = [manager createSSAISessionProviderWithUpstreamSessionProvider:fairplaySessionProvider];
-        
-        _playbackController = [manager createPlaybackControllerWithSessionProvider:ssaiSessionProvider viewStrategy:nil];
+        _playbackController = [manager createSSAIPlaybackController];
         
         [_playbackController addSessionConsumer:adComponentDisplayContainer];
+        
     }
     
     _playbackController.delegate = self;
@@ -72,6 +67,7 @@
     // default is in view
     _inViewPort = YES;
     
+    
     BCOVPUIPlayerViewOptions *options;
     if (!_disableDefaultControl) {
         options = [[BCOVPUIPlayerViewOptions alloc] init];
@@ -81,11 +77,13 @@
             options.showPictureInPictureButton = YES;
         }
     }
+    BCOVPUIBasicControlView *controlView = [BCOVPUIBasicControlView basicControlViewWithVODLayout];
     
-    _playerView = [[BCOVPUIPlayerView alloc] initWithPlaybackController:_playbackController options:options controlsView:[BCOVPUIBasicControlView basicControlViewWithVODLayout] ];
+    _playerView = [[BCOVPUIPlayerView alloc] initWithPlaybackController:_playbackController options:options controlsView:controlView];
     if (_disableDefaultControl == true) {
         _playerView.controlsView.hidden = true;
     }
+    
     _playerView.delegate = self;
     _playerView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
     _playerView.backgroundColor = UIColor.blackColor;
@@ -111,16 +109,10 @@
         [_playbackService findVideoWithConfiguration:configuration queryParameters:parameters completion:^(BCOVVideo *video, NSDictionary *jsonResponse, NSError *error) {
             if (video != nil) {
                 [self.playbackController setVideos: @[ video ]];
+                [self.playbackController play];
             }
         }];
     }
-}
-
-
-- (id<BCOVPlaybackController>)createPlaybackController {
-    BCOVBasicSessionProviderOptions *options = [BCOVBasicSessionProviderOptions alloc];
-    BCOVBasicSessionProvider *provider = [[BCOVPlayerSDKManager sharedManager] createBasicSessionProviderWithOptions:options];
-    return [BCOVPlayerSDKManager.sharedManager createPlaybackControllerWithSessionProvider:provider viewStrategy:nil];
 }
 
 - (void)setVideoId:(NSString *)videoId {
@@ -327,44 +319,11 @@
         if (self.onPause) {
             self.onPause(@{});
         }
-    } else if (lifecycleEvent.eventType == kBCOVIMALifecycleEventAdsLoaderLoaded) {
-        if (self.onAdsLoaded) {
-            self.onAdsLoaded(@{});
-        }
     } else if (lifecycleEvent.eventType == kBCOVPlaybackSessionLifecycleEventAdProgress) {
         // catches scroll away before ads start bug
         if (!_inViewPort) {
             [self.playbackController pauseAd];
             [self.playbackController pause];
-        }
-    }
-    
-    if (lifecycleEvent.eventType == kBCOVIMALifecycleEventAdsManagerDidReceiveAdEvent) {
-        IMAAdEvent *adEvent = lifecycleEvent.properties[@"adEvent"];
-        
-        // NSLog(@"BC - DEBUG adEvent: %ld %@", adEvent.type, adEvent.typeString);
-        
-        switch (adEvent.type)
-        {
-            case kIMAAdEvent_LOADED:
-                _adsPlaying = YES;
-                break;
-            case kIMAAdEvent_PAUSE:
-                break;
-            case kIMAAdEvent_RESUME:
-                _adsPlaying = YES;
-                break;
-            case kIMAAdEvent_STARTED:
-                _adsPlaying = YES;
-                break;
-            case kIMAAdEvent_COMPLETE:
-                _adsPlaying = NO;
-                break;
-            case kIMAAdEvent_ALL_ADS_COMPLETED:
-                _adsPlaying = NO;
-                break;
-            default:
-                break;
         }
     }
 }
@@ -448,15 +407,6 @@
     //    }
 }
 
-#pragma mark - IMAPlaybackSessionDelegate Methods
-
-- (void)willCallIMAAdsLoaderRequestAdsWithRequest:(IMAAdsRequest *)adsRequest forPosition:(NSTimeInterval)position
-{
-    // for demo purposes, increase the VAST ad load timeout.
-    //    adsRequest.vastLoadTimeout = 3000.;
-    //NSLog(@"BC - DEBUG - IMAAdsRequest.vastLoadTimeout set to %.1f milliseconds.", adsRequest.vastLoadTimeout);
-}
-
 #pragma mark - BCOVPUIPlayerViewDelegate Methods
 
 - (void)pictureInPictureControllerDidStartPictureInPicture:(AVPictureInPictureController *)pictureInPictureController
@@ -487,7 +437,5 @@
 {
     NSLog(@"failedToStartPictureInPictureWithError: %@", error.localizedDescription);
 }
-
-#pragma mark - IMALinkOpenerDelegate Methods
 
 @end
