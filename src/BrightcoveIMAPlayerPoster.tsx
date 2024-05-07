@@ -30,6 +30,7 @@ const BrightcoveIMAPlayerPosterView =
 
 export class BrightcoveIMAPlayerPoster extends Component<BrightcoveIMAPlayerPosterProps> {
   render() {
+    // @ts-ignore
     return <BrightcoveIMAPlayerPosterView {...this.props} />;
   }
 }
