@@ -9,7 +9,7 @@
 
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
-//        [self setup];
+        //        [self setup];
     }
     return self;
 }
@@ -18,55 +18,60 @@
 {
     self = [super init];
     if (!self) return nil;
-
+    
     for (NSString *name in @[
-             UIApplicationDidBecomeActiveNotification,
-             UIApplicationDidEnterBackgroundNotification
-           ]) {
+        UIApplicationDidBecomeActiveNotification,
+        UIApplicationDidEnterBackgroundNotification
+    ]) {
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(handleAppStateDidChange:)
                                                      name:name
                                                    object:nil];
-      }
-
+    }
+    
     return self;
 }
 
 - (void)setupWithSettings:(NSDictionary*)settings {
-    BCOVPlayerSDKManager *manager = [BCOVPlayerSDKManager sharedManager];
-
-    BCOVSSAIAdComponentDisplayContainer *adComponentDisplayContainer = [[BCOVSSAIAdComponentDisplayContainer alloc] initWithCompanionSlots:@[]];
-
-    self.fairplayAuthProxy = [[BCOVFPSBrightcoveAuthProxy alloc] initWithPublisherId:nil applicationId:nil];
-
-    id<BCOVPlaybackSessionProvider> fairplaySessionProvider = [manager createFairPlaySessionProviderWithAuthorizationProxy:self.fairplayAuthProxy upstreamSessionProvider:nil];
-    
-    id<BCOVPlaybackSessionProvider> ssaiSessionProvider = [manager createSSAISessionProviderWithUpstreamSessionProvider:fairplaySessionProvider];
-    
-    _playbackController = [manager createPlaybackControllerWithSessionProvider:ssaiSessionProvider viewStrategy:nil];
-
-    [_playbackController addSessionConsumer:adComponentDisplayContainer];
-    
-    _playbackController.delegate = self;
-
-    // By pass mute button
-    NSError *error = nil;
-    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&error];
-
+    _adConfigId = [settings objectForKey:@"adConfigId"] != nil ? [[settings objectForKey:@"adConfigId"] stringValue] : @"";
     BOOL autoAdvance = [settings objectForKey:@"autoAdvance"] != nil ? [[settings objectForKey:@"autoAdvance"] boolValue] : NO;
     BOOL autoPlay = [settings objectForKey:@"autoPlay"] != nil ? [[settings objectForKey:@"autoPlay"] boolValue] : YES;
     BOOL allowsExternalPlayback = [settings objectForKey:@"allowsExternalPlayback"] != nil ? [[settings objectForKey:@"allowsExternalPlayback"] boolValue] : YES;
-    _adConfigId = [settings objectForKey:@"adConfigId"] != nil ? [[settings objectForKey:@"adConfigId"] stringValue] : @"";
-
+    
+    
+    BCOVPlayerSDKManager *manager = [BCOVPlayerSDKManager sharedManager];
+    
+    if (_adConfigId != nil) {
+        _playbackController = [manager createPlaybackController];
+    } else {
+        BCOVSSAIAdComponentDisplayContainer *adComponentDisplayContainer = [[BCOVSSAIAdComponentDisplayContainer alloc] initWithCompanionSlots:@[]];
+        
+        self.fairplayAuthProxy = [[BCOVFPSBrightcoveAuthProxy alloc] initWithPublisherId:nil applicationId:nil];
+        
+        id<BCOVPlaybackSessionProvider> fairplaySessionProvider = [manager createFairPlaySessionProviderWithAuthorizationProxy:self.fairplayAuthProxy upstreamSessionProvider:nil];
+        
+        id<BCOVPlaybackSessionProvider> ssaiSessionProvider = [manager createSSAISessionProviderWithUpstreamSessionProvider:fairplaySessionProvider];
+        
+        _playbackController = [manager createPlaybackControllerWithSessionProvider:ssaiSessionProvider viewStrategy:nil];
+        
+        [_playbackController addSessionConsumer:adComponentDisplayContainer];
+    }
+    
+    _playbackController.delegate = self;
+    
+    // By pass mute button
+    NSError *error = nil;
+    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&error];
+    
     _playbackController.autoAdvance = autoAdvance;
     _playbackController.autoPlay = autoPlay;
     _playbackController.allowsExternalPlayback = allowsExternalPlayback;
-
+    
     _targetVolume = 1.0;
-       _autoPlay = autoPlay;
-       // default is in view
-       _inViewPort = YES;
-
+    _autoPlay = autoPlay;
+    // default is in view
+    _inViewPort = YES;
+    
     BCOVPUIPlayerViewOptions *options;
     if (!_disableDefaultControl) {
         options = [[BCOVPUIPlayerViewOptions alloc] init];
@@ -281,7 +286,7 @@
 - (void)playbackController:(id<BCOVPlaybackController>)controller playbackSession:(id<BCOVPlaybackSession>)session didReceiveLifecycleEvent:(BCOVPlaybackSessionLifecycleEvent *)lifecycleEvent {
     
     // NSLog(@"BC - DEBUG eventType: %@", lifecycleEvent.eventType);
-        
+    
     if (lifecycleEvent.eventType == kBCOVPlaybackSessionLifecycleEventPlaybackBufferEmpty ||
         lifecycleEvent.eventType == kBCOVPlaybackSessionLifecycleEventFail ||
         lifecycleEvent.eventType == kBCOVPlaybackSessionLifecycleEventError ||
@@ -318,7 +323,7 @@
                 }
             }
         }
-
+        
         if (self.onPause) {
             self.onPause(@{});
         }
@@ -338,7 +343,7 @@
         IMAAdEvent *adEvent = lifecycleEvent.properties[@"adEvent"];
         
         // NSLog(@"BC - DEBUG adEvent: %ld %@", adEvent.type, adEvent.typeString);
-                
+        
         switch (adEvent.type)
         {
             case kIMAAdEvent_LOADED:
@@ -368,24 +373,24 @@
     self.currentVideoDuration = duration;
     if (self.onChangeDuration) {
         self.onChangeDuration(@{
-                                @"duration": @(duration)
-                                });
+            @"duration": @(duration)
+        });
     }
 }
 
 -(void)playbackController:(id<BCOVPlaybackController>)controller playbackSession:(id<BCOVPlaybackSession>)session didProgressTo:(NSTimeInterval)progress {
     if (self.onProgress && progress > 0 && progress != INFINITY) {
         self.onProgress(@{
-                          @"currentTime": @(progress)
-                          });
+            @"currentTime": @(progress)
+        });
     }
     float bufferProgress = _playerView.controlsView.progressSlider.bufferProgress;
     if (_lastBufferProgress != bufferProgress) {
         _lastBufferProgress = bufferProgress;
         if (self.onUpdateBufferProgress) {
             self.onUpdateBufferProgress(@{
-                                          @"bufferProgress": @(bufferProgress),
-                                          });
+                @"bufferProgress": @(bufferProgress),
+            });
         }
     }
 }
@@ -419,28 +424,28 @@
 }
 
 - (void)playbackController:(id<BCOVPlaybackController>)controller playbackSession:(id<BCOVPlaybackSession>)session didExitAdSequence:(BCOVAdSequence *)adSequence {
-//    if (_inViewPort) {
-//        [self.playbackController play];
-//    }
+    //    if (_inViewPort) {
+    //        [self.playbackController play];
+    //    }
 }
 
 - (void)playbackController:(id<BCOVPlaybackController>)controller playbackSession:(id<BCOVPlaybackSession>)session didEnterAd:(BCOVAd *)ad {
-//    if (!_inViewPort) {
-//        [self.playbackController pauseAd];
-//    }
-//    [self.playbackController pause];
+    //    if (!_inViewPort) {
+    //        [self.playbackController pauseAd];
+    //    }
+    //    [self.playbackController pause];
 }
 
 - (void)playbackController:(id<BCOVPlaybackController>)controller playbackSession:(id<BCOVPlaybackSession>)session didExitAd:(BCOVAd *)ad {
-//    if (_inViewPort) {
-//        [self.playbackController play];
-//    }
+    //    if (_inViewPort) {
+    //        [self.playbackController play];
+    //    }
 }
 
 - (void)playbackController:(id<BCOVPlaybackController>)controller playbackSession:(id<BCOVPlaybackSession>)session ad:(BCOVAd *)ad didProgressTo:(NSTimeInterval)progress {
-//    if (_playing) {
-//        [self.playbackController pause];
-//    }
+    //    if (_playing) {
+    //        [self.playbackController pause];
+    //    }
 }
 
 #pragma mark - IMAPlaybackSessionDelegate Methods

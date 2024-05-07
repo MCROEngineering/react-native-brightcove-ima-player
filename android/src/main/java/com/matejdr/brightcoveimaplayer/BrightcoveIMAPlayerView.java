@@ -419,7 +419,13 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       catalog.findVideoByID(this.videoId, httpRequestConfig, new VideoListener() {
         @Override
         public void onVideo(Video video) {
-          plugin.processVideo(video);
+          if (adConfigId != null) {
+            plugin.processVideo(video);
+          } else {
+            BrightcoveIMAPlayerView.this.brightcoveVideoView.clear();
+            BrightcoveIMAPlayerView.this.brightcoveVideoView.add(video);
+            BrightcoveIMAPlayerView.this.brightcoveVideoView.start();
+          }
         }
 
         @Override
