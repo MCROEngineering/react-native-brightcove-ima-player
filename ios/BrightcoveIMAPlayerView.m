@@ -33,15 +33,25 @@
 }
 
 - (void)setupWithSettings:(NSDictionary*)settings {
-    _adConfigId = [settings objectForKey:@"adConfigId"] != nil ? [[settings objectForKey:@"adConfigId"] stringValue] : @"";
-    BOOL autoAdvance = [settings objectForKey:@"autoAdvance"] != nil ? [[settings objectForKey:@"autoAdvance"] boolValue] : NO;
-    BOOL autoPlay = [settings objectForKey:@"autoPlay"] != nil ? [[settings objectForKey:@"autoPlay"] boolValue] : YES;
-    BOOL allowsExternalPlayback = [settings objectForKey:@"allowsExternalPlayback"] != nil ? [[settings objectForKey:@"allowsExternalPlayback"] boolValue] : YES;
+    _adConfigId = [settings objectForKey:@"adConfigId"];
     
+    // By pass mute button
+    NSError *error = nil;
+    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&error];
     
+    _targetVolume = 1.0;
+    _inViewPort = YES;
+    
+    [self setupPlaybackController:settings];
+    [self setupPlayerView];
+}
+
+- (void)setupPlaybackController:(NSDictionary*)settings
+{
+    // Do any additional setup after loading the view, typically from a nib.
     BCOVPlayerSDKManager *manager = [BCOVPlayerSDKManager sharedManager];
     
-    if (_adConfigId != nil) {
+    if (!_adConfigId) {
         _playbackController = [manager createPlaybackController];
     } else {
         BCOVSSAIAdComponentDisplayContainer *adComponentDisplayContainer = [[BCOVSSAIAdComponentDisplayContainer alloc] initWithCompanionSlots:@[]];
@@ -52,43 +62,39 @@
         
     }
     
-    _playbackController.delegate = self;
+    self.playbackController.delegate = self;
     
-    // By pass mute button
-    NSError *error = nil;
-    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&error];
-    
-    _playbackController.autoAdvance = autoAdvance;
-    _playbackController.autoPlay = autoPlay;
+    BOOL autoPlay = [settings objectForKey:@"autoPlay"] != nil ? [[settings objectForKey:@"autoPlay"] boolValue] : YES;
+    BOOL allowsExternalPlayback = [settings objectForKey:@"allowsExternalPlayback"] != nil ? [[settings objectForKey:@"allowsExternalPlayback"] boolValue] : YES;
+    self.playbackController.autoPlay = autoPlay;
     _playbackController.allowsExternalPlayback = allowsExternalPlayback;
     
-    _targetVolume = 1.0;
     _autoPlay = autoPlay;
-    // default is in view
-    _inViewPort = YES;
-    
-    
+}
+
+- (void)setupPlayerView
+{
+    BCOVPUIBasicControlView *controlView = [BCOVPUIBasicControlView basicControlViewWithVODLayout];
     BCOVPUIPlayerViewOptions *options;
     if (!_disableDefaultControl) {
         options = [[BCOVPUIPlayerViewOptions alloc] init];
         options.presentingViewController = RCTPresentedViewController();
-        options.automaticControlTypeSelection = YES;
         if (_disablePictureInPicture == false) {
             options.showPictureInPictureButton = YES;
         }
     }
-    BCOVPUIBasicControlView *controlView = [BCOVPUIBasicControlView basicControlViewWithVODLayout];
     
-    _playerView = [[BCOVPUIPlayerView alloc] initWithPlaybackController:_playbackController options:options controlsView:controlView];
+    self.playerView = [[BCOVPUIPlayerView alloc] initWithPlaybackController:self.playbackController options:options controlsView:controlView];
+    
     if (_disableDefaultControl == true) {
         _playerView.controlsView.hidden = true;
     }
     
-    _playerView.delegate = self;
-    _playerView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
-    _playerView.backgroundColor = UIColor.blackColor;
+    self.playerView.delegate = self;
     
-    [self addSubview:_playerView];
+    [self addSubview:self.playerView];
+    self.playerView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
+    self.playerView.backgroundColor = UIColor.blackColor;
 }
 
 - (void)setupService {
@@ -109,7 +115,6 @@
         [_playbackService findVideoWithConfiguration:configuration queryParameters:parameters completion:^(BCOVVideo *video, NSDictionary *jsonResponse, NSError *error) {
             if (video != nil) {
                 [self.playbackController setVideos: @[ video ]];
-                [self.playbackController play];
             }
         }];
     }
