@@ -13,10 +13,7 @@
 #import <React/RCTBridge.h>
 #import <React/UIView+React.h>
 
-@import BrightcoveIMA;
-@import GoogleInteractiveMediaAds;
-
-@interface BrightcoveIMAPlayerView : UIView<BCOVIMAPlaybackSessionDelegate>
+@interface BrightcoveIMAPlayerView : UIView
 
 @property (nonatomic) BCOVPlaybackService *playbackService;
 @property (nonatomic) id<BCOVPlaybackController> playbackController;
