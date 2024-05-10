@@ -111,6 +111,9 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
     setupSSAI();
 
+    ExoPlayerVideoDisplayComponent videoDisplayComponent = (ExoPlayerVideoDisplayComponent) this.brightcoveVideoView.getVideoDisplay();
+    videoDisplayComponent.setAllowHlsChunklessPreparation(false);
+
     eventEmitter.on(EventType.VIDEO_SIZE_KNOWN, new EventListener() {
       @Override
       public void processEvent(Event e) {
@@ -135,7 +138,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
         ReactContext reactContext = (ReactContext) BrightcoveIMAPlayerView.this.getContext();
         // add hasCaptions prop on event if the video hasCaptions
         captionExists = BrightcoveIMAPlayerView.this.brightcoveVideoView.getClosedCaptioningController().checkIfCaptionsExist(
-                BrightcoveIMAPlayerView.this.brightcoveVideoView.getCurrentVideo()
+          BrightcoveIMAPlayerView.this.brightcoveVideoView.getCurrentVideo()
         );
         event.putBoolean("hasCaptions", captionExists);
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_PLAY, event);
@@ -282,11 +285,11 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
   public void showCaptionsDialog() {
     captionExists = this.brightcoveVideoView.getClosedCaptioningController().checkIfCaptionsExist(
-        this.brightcoveVideoView.getCurrentVideo()
+      this.brightcoveVideoView.getCurrentVideo()
     );
     // Emit event
     if (captionExists) {
-        this.brightcoveVideoView.getClosedCaptioningController().showCaptionsDialog();
+      this.brightcoveVideoView.getClosedCaptioningController().showCaptionsDialog();
     }
 
   }
