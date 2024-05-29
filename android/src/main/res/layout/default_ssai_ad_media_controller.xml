@@ -1,0 +1,41 @@
+<com.brightcove.player.mediacontroller.BrightcoveControlBar
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/brightcove_control_bar"
+    style="@style/SSAIAdControlBar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="bottom"
+    android:background="@color/bmc_background"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="bottom"
+        android:orientation="horizontal">
+
+        <Button style="@style/BorderlessButton"
+            android:id="@id/play"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/brightcove_controls_play"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+
+        <include layout="@layout/ssai_ad_number_countdown_view"/>
+
+        <include layout="@layout/ssai_single_ad_duration_countdown_view"/>
+
+        <View
+            android:id="@id/two_line_spacer"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+
+    </LinearLayout>
+
+</com.brightcove.player.mediacontroller.BrightcoveControlBar>

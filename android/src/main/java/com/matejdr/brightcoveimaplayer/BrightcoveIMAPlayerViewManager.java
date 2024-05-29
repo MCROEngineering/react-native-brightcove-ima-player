@@ -37,6 +37,7 @@ public class BrightcoveIMAPlayerViewManager extends SimpleViewManager<Brightcove
   public static final String EVENT_EXIT_FULLSCREEN = "exit_fullscreen";
   public static final String EVENT_CHANGE_DURATION = "change_duration";
   public static final String EVENT_UPDATE_BUFFER_PROGRESS = "update_buffer_progress";
+  public static final String EVENT_VIDEO_PLAY = "video_play";
 
   private final ReactApplicationContext applicationContext;
 
@@ -188,6 +189,7 @@ public class BrightcoveIMAPlayerViewManager extends SimpleViewManager<Brightcove
     map.put(EVENT_ADS_LOADED, (Object) MapBuilder.of("registrationName", "onAdsLoaded"));
     map.put(EVENT_READY, (Object) MapBuilder.of("registrationName", "onReady"));
     map.put(EVENT_PLAY, (Object) MapBuilder.of("registrationName", "onPlay"));
+    map.put(EVENT_VIDEO_PLAY, (Object) MapBuilder.of("registrationName", "onVideoPlay"));
     map.put(EVENT_PAUSE, (Object) MapBuilder.of("registrationName", "onPause"));
     map.put(EVENT_END, (Object) MapBuilder.of("registrationName", "onEnd"));
     map.put(EVENT_PROGRESS, (Object) MapBuilder.of("registrationName", "onProgress"));

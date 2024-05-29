@@ -101,7 +101,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     this.requestLayout();
 
     this.fullScreenHandler = new FullScreenHandler(context, this.brightcoveVideoView, this);
-    this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView);
+    this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView, false);
 
     setupLayoutHack();
 
@@ -216,7 +216,6 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_UPDATE_BUFFER_PROGRESS, event);
       }
     });
-
   }
 
   public void setSettings(ReadableMap settings) {
@@ -428,6 +427,8 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
             BrightcoveIMAPlayerView.this.brightcoveVideoView.clear();
             BrightcoveIMAPlayerView.this.brightcoveVideoView.add(video);
             BrightcoveIMAPlayerView.this.brightcoveVideoView.start();
+            ReactContext reactContext = (ReactContext) BrightcoveIMAPlayerView.this.getContext();
+            reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_VIDEO_PLAY, Arguments.createMap());
           }
         }
 
@@ -459,13 +460,18 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     eventEmitter.on(EventType.AD_STARTED, event -> {
       adsPlaying = true;
     });
+    eventEmitter.on("startAd", event -> {
+      this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView, true);
+    });
     // Enable logging any failed attempts to play an ad.
     eventEmitter.on(GoogleIMAEventType.DID_FAIL_TO_PLAY_AD, event -> adsPlaying = false);
     // Enable Logging upon ad completion.
     eventEmitter.on(EventType.AD_COMPLETED, event -> {
       adsPlaying = false;
-      this.fullScreenHandler = new FullScreenHandler(context, this.brightcoveVideoView, this);
-      this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView);
+      this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView, false);
+
+      ReactContext reactContext = (ReactContext) BrightcoveIMAPlayerView.this.getContext();
+      reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_VIDEO_PLAY, Arguments.createMap());
     });
     // Enable Logging upon ad break completion.
     eventEmitter.on(EventType.AD_BREAK_COMPLETED, event -> {

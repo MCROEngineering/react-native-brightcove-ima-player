@@ -2,6 +2,7 @@ package com.matejdr.brightcoveimaplayer.util;
 
 import android.app.Dialog;
 import android.graphics.Typeface;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -34,11 +35,12 @@ public class FullScreenHandler {
     this.initFullscreenDialog();
   }
 
-  public BrightcoveMediaController initMediaController(final BrightcoveExoPlayerVideoView brightcoveVideoView) {
+  public BrightcoveMediaController initMediaController(final BrightcoveExoPlayerVideoView brightcoveVideoView, boolean isAds) {
     BrightcoveMediaController mediaController;
-//        mediaController = new BrightcoveMediaController(brightcoveVideoView);
 
-    if (BrightcoveMediaController.checkTvMode(context)) {
+    if (isAds) {
+      mediaController = new BrightcoveMediaController(brightcoveVideoView, R.layout.default_ssai_ad_media_controller);
+    } else if (BrightcoveMediaController.checkTvMode(context)) {
       // Use this method to verify if we're running in Android TV
       mediaController = new BrightcoveMediaController(brightcoveVideoView, R.layout.nzh_tv_media_controller);
     } else {
@@ -61,6 +63,7 @@ public class FullScreenHandler {
   private void initButtons(final BrightcoveExoPlayerVideoView brightcoveVideoView) {
     Typeface font = Typeface.createFromAsset(context.getAssets(), FONT_AWESOME);
     fullScreenButton = (Button) brightcoveVideoView.findViewById(R.id.full_screen_custom);
+
     if (fullScreenButton != null) {
       fullScreenButton.setTypeface(font);
       fullScreenButton.setOnClickListener(new View.OnClickListener() {

@@ -63,6 +63,10 @@ type BrightcoveIMAPlayerProps = ViewProps & {
     event: NativeSyntheticEvent<TBrightcoveIMAPlayerEventBase>
   ) => void;
   onPlay?: (event: NativeSyntheticEvent<TBrightcoveIMAPlayerEventBase>) => void;
+  /**
+   * Android only
+   */
+  onVideoPlay?: (event: NativeSyntheticEvent<TBrightcoveIMAPlayerEventBase>) => void;
   onPause?: (
     event: NativeSyntheticEvent<TBrightcoveIMAPlayerEventBase>
   ) => void;
