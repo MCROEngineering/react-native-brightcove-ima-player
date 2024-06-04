@@ -11,7 +11,6 @@ import android.widget.RelativeLayout;
 import androidx.annotation.NonNull;
 import androidx.core.view.ViewCompat;
 
-import com.brightcove.ima.GoogleIMAComponent;
 import com.brightcove.ima.GoogleIMAEventType;
 import com.brightcove.player.display.ExoPlayerVideoDisplayComponent;
 import com.brightcove.player.edge.Catalog;
@@ -22,10 +21,9 @@ import com.brightcove.player.event.EventEmitter;
 import com.brightcove.player.event.EventListener;
 import com.brightcove.player.event.EventType;
 import com.brightcove.player.mediacontroller.BrightcoveMediaController;
-import com.brightcove.player.mediacontroller.BrightcoveSeekBar;
 import com.brightcove.player.model.Video;
 import com.brightcove.player.network.HttpRequestConfig;
-import com.brightcove.player.view.BaseVideoView;
+import com.brightcove.player.pictureinpicture.PictureInPictureManager;
 import com.brightcove.player.view.BrightcoveExoPlayerVideoView;
 import com.brightcove.ssai.SSAIComponent;
 import com.facebook.react.bridge.Arguments;
@@ -36,18 +34,12 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
-import com.google.ads.interactivemedia.v3.api.AdsManager;
-import com.google.ads.interactivemedia.v3.api.AdsRequest;
-import com.google.ads.interactivemedia.v3.api.ImaSdkFactory;
-import com.google.ads.interactivemedia.v3.api.ImaSdkSettings;
-import com.google.ads.interactivemedia.v3.api.AdsRenderingSettings;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
 import com.matejdr.brightcoveimaplayer.util.FullScreenHandler;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,14 +60,11 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   private boolean autoPlay = false;
   private boolean playing = false;
   private boolean adsPlaying = false;
-  private boolean inViewPort = true;
   private boolean disableDefaultControl = false;
   private int bitRate = 0;
   private int adVideoLoadTimeout = 3000;
   private float playbackRate = 1;
   private EventEmitter eventEmitter;
-  private GoogleIMAComponent googleIMAComponent;
-
   private SSAIComponent plugin;
 
   private FullScreenHandler fullScreenHandler;
@@ -216,6 +205,10 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_UPDATE_BUFFER_PROGRESS, event);
       }
     });
+
+    PictureInPictureManager.getInstance().setOnUserLeaveEnabled(true);
+    PictureInPictureManager.getInstance().registerActivity(this.context.getCurrentActivity(), this.brightcoveVideoView);
+    BrightcovePiPManagerProxy.getInstance().setBrightcoveIMAPlayerView(this.brightcoveVideoView);
   }
 
   public void setSettings(ReadableMap settings) {
@@ -301,16 +294,6 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     }
   }
 
-  public void toggleInViewPort(boolean inViewPort) {
-    if (inViewPort) {
-      this.inViewPort = true;
-    } else {
-      this.inViewPort = false;
-      // need to pause here also - (differs from IOS behaviour)
-      this.pause();
-    }
-  }
-
   public void setVolume(float volume) {
     Map<String, Object> details = new HashMap<>();
     details.put(Event.VOLUME, volume);
@@ -339,9 +322,6 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
   public void stopPlayback() {
     if (this.brightcoveVideoView != null) {
-      if (this.adsPlaying && this.googleIMAComponent != null && this.googleIMAComponent.getVideoAdPlayer() != null) {
-        this.googleIMAComponent.getVideoAdPlayer().stopAd();
-      }
       this.brightcoveVideoView.stopPlayback();
       this.brightcoveVideoView.destroyDrawingCache();
       this.brightcoveVideoView.clear();
@@ -360,19 +340,13 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   }
 
   public void pause() {
-    if (this.adsPlaying && this.googleIMAComponent != null && this.googleIMAComponent.getVideoAdPlayer() != null) {
-      // TODO upgrade to pauseAd(AdMediaInfo)
-      this.googleIMAComponent.getVideoAdPlayer().pause();
-    } else if (this.playing && this.brightcoveVideoView != null) {
+    if (this.playing && this.brightcoveVideoView != null) {
       this.brightcoveVideoView.pause();
     }
   }
 
   public void play() {
-    if (this.adsPlaying && this.googleIMAComponent != null && this.googleIMAComponent.getVideoAdPlayer() != null) {
-      // TODO upgrade to resumeAd(AdMediaInfo)
-      this.googleIMAComponent.getVideoAdPlayer().resumeAd();
-    } else if (this.brightcoveVideoView != null) {
+    if (this.brightcoveVideoView != null) {
       this.brightcoveVideoView.start();
     }
   }
@@ -459,12 +433,12 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     // Enable logging up ad start.
     eventEmitter.on(EventType.AD_STARTED, event -> {
       adsPlaying = true;
+      PictureInPictureManager.getInstance().setOnUserLeaveEnabled(false);
     });
     eventEmitter.on("startAd", event -> {
       this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView, true);
+      PictureInPictureManager.getInstance().setOnUserLeaveEnabled(false);
     });
-    // Enable logging any failed attempts to play an ad.
-    eventEmitter.on(GoogleIMAEventType.DID_FAIL_TO_PLAY_AD, event -> adsPlaying = false);
     // Enable Logging upon ad completion.
     eventEmitter.on(EventType.AD_COMPLETED, event -> {
       adsPlaying = false;
@@ -472,17 +446,12 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
       ReactContext reactContext = (ReactContext) BrightcoveIMAPlayerView.this.getContext();
       reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_VIDEO_PLAY, Arguments.createMap());
+
+      PictureInPictureManager.getInstance().setOnUserLeaveEnabled(true);
     });
     // Enable Logging upon ad break completion.
     eventEmitter.on(EventType.AD_BREAK_COMPLETED, event -> {
       adsPlaying = false;
-    });
-    // checks ad progress and pauses if out of view
-    // fixes the elusive play then scroll away before pre-roll starts bug
-    eventEmitter.on(EventType.AD_PROGRESS, event -> {
-      if (!inViewPort) {
-        this.pause();
-      }
     });
 
     plugin = new SSAIComponent(this.context, this.brightcoveVideoView);
@@ -491,15 +460,13 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   @Override
   public void onHostResume() {
     // handleAppStateDidChange active
-    this.pause();
-    this.toggleInViewPort(true);
+    this.fullScreenHandler = new FullScreenHandler(context, this.brightcoveVideoView, this);
+    this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView, this.adsPlaying);
   }
 
   @Override
   public void onHostPause() {
     // handleAppStateDidChange background
-    this.pause();
-    this.toggleInViewPort(false);
   }
 
   @Override
