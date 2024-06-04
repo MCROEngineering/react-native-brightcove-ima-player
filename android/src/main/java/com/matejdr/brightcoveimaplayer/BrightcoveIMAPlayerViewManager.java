@@ -168,7 +168,7 @@ public class BrightcoveIMAPlayerViewManager extends SimpleViewManager<Brightcove
         return;
       }
       case COMMAND_TOGGLE_IN_VIEW_PORT: {
-        view.toggleInViewPort((boolean) (args.getBoolean(0)));
+        // view.toggleInViewPort((boolean) (args.getBoolean(0)));
         return;
       }
       case COMMAND_SHOW_CAPTIONS_DIALOG: {
