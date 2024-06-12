@@ -80,6 +80,13 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     setup();
   }
 
+  @Override
+  protected void onDetachedFromWindow() {
+    super.onDetachedFromWindow();
+
+    PictureInPictureManager.getInstance().setOnUserLeaveEnabled(false);
+  }
+
   private void setup() {
     this.brightcoveVideoView = new BrightcoveExoPlayerVideoView(this.context);
 
