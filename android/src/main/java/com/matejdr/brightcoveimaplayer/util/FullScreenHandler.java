@@ -1,8 +1,8 @@
 package com.matejdr.brightcoveimaplayer.util;
 
 import android.app.Dialog;
+import android.content.res.Configuration;
 import android.graphics.Typeface;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -15,9 +15,10 @@ import com.brightcove.player.mediacontroller.BrightcoveMediaController;
 import com.brightcove.player.pictureinpicture.PictureInPictureManager;
 import com.brightcove.player.view.BrightcoveExoPlayerVideoView;
 import com.facebook.react.uimanager.ThemedReactContext;
+import com.matejdr.brightcoveimaplayer.BrightcovePiPManagerProxy;
 import com.matejdr.brightcoveimaplayer.R;
 
-public class FullScreenHandler {
+public class FullScreenHandler implements PiPModeChangedListener {
   // This TTF font is included in the Brightcove SDK.
   public static final String FONT_AWESOME = "fontawesome-webfont.ttf";
 
@@ -35,6 +36,20 @@ public class FullScreenHandler {
     this.playerVideoView = playerVideoView;
     this.brightcovePlayerView = brightcovePlayerView;
     this.initFullscreenDialog();
+    BrightcovePiPManagerProxy.getInstance().addPiPModeChangedListener(this);
+  }
+
+  @Override
+  public void onPiPModeChanged(boolean isInPictureInPictureMode, Configuration newConfig) {
+    if (isInPictureInPictureMode) {
+      openFullscreenDialog();
+    } else {
+      closeFullscreenDialog();
+    }
+  }
+
+  public void cleanup() {
+    BrightcovePiPManagerProxy.getInstance().removePiPModeChangedListener(this);
   }
 
   public BrightcoveMediaController initMediaController(final BrightcoveExoPlayerVideoView brightcoveVideoView, boolean isAds) {

@@ -85,6 +85,9 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     super.onDetachedFromWindow();
 
     PictureInPictureManager.getInstance().setOnUserLeaveEnabled(false);
+    if (this.fullScreenHandler != null) {
+      this.fullScreenHandler.cleanup();
+    }
   }
 
   private void setup() {
@@ -96,8 +99,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
     this.requestLayout();
 
-    this.fullScreenHandler = new FullScreenHandler(context, this.brightcoveVideoView, this);
-    this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView, false);
+    this.configurePlaybackControls(false);
 
     setupLayoutHack();
 
@@ -467,8 +469,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   @Override
   public void onHostResume() {
     // handleAppStateDidChange active
-    this.fullScreenHandler = new FullScreenHandler(context, this.brightcoveVideoView, this);
-    this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView, this.adsPlaying);
+    this.configurePlaybackControls(this.adsPlaying);
   }
 
   @Override
@@ -502,6 +503,14 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
         MeasureSpec.makeMeasureSpec(getMeasuredHeight(), MeasureSpec.EXACTLY));
       child.layout(0, 0, child.getMeasuredWidth(), child.getMeasuredHeight());
     }
+  }
+
+  private void configurePlaybackControls(boolean isAds) {
+    if (this.fullScreenHandler != null) {
+      this.fullScreenHandler.cleanup();
+    }
+    this.fullScreenHandler = new FullScreenHandler(context, this.brightcoveVideoView, this);
+    this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView, isAds);
   }
 
 }
