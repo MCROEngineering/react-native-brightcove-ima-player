@@ -17,5 +17,5 @@ Pod::Spec.new do |s|
 
   s.dependency "React-Core"
   s.dependency 'Google-Mobile-Ads-SDK', '11.2.0'
-  s.dependency 'Brightcove-Player-SSAI/XCFramework'
+  s.dependency 'Brightcove-Player-SSAI/XCFramework', '6.13.1'
 end
