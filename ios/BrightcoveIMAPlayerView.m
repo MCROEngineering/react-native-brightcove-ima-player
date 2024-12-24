@@ -312,9 +312,9 @@
     } else if (lifecycleEvent.eventType == kBCOVPlaybackSessionLifecycleEventPause) {
         _playing = false;
         if (self.currentVideoDuration) {
-            int curDur = (int)self.currentVideoDuration;
-            int curTime = (int)CMTimeGetSeconds([session.player currentTime]);
-            if (curDur == curTime) {
+            int curDur = (int)ceil(self.currentVideoDuration);
+            int curTime = (int)ceil(CMTimeGetSeconds([session.player currentTime]));
+            if (curDur <= curTime) {
                 if (self.onEnd) {
                     self.onEnd(@{});
                 }
