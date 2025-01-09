@@ -59,5 +59,7 @@
 -(void) play;
 -(void) stopPlayback;
 -(void) dispose;
+-(void) enterPictureInPicture;
+-(void) exitPictureInPicture;
 
 @end

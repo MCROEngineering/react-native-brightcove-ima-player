@@ -1,5 +1,6 @@
 #import "BrightcoveIMAPlayerView.h"
 #import <React/RCTUtils.h>
+#import <AVKit/AVKit.h>
 
 @interface BrightcoveIMAPlayerView () <BCOVPlaybackControllerDelegate, BCOVPUIPlayerViewDelegate, BCOVPlaybackControllerAdsDelegate>
 
@@ -267,6 +268,14 @@
 -(void)dispose {
     [self.playbackController setVideos:@[]];
     self.playbackController = nil;
+}
+
+-(void)enterPictureInPicture {
+    [self.playbackController.pictureInPictureController startPictureInPicture];
+}
+
+-(void)exitPictureInPicture {
+    [self.playbackController.pictureInPictureController stopPictureInPicture];
 }
 
 - (void)handleAppStateDidChange:(NSNotification *)notification

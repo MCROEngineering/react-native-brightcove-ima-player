@@ -185,6 +185,30 @@ export class BrightcoveIMAPlayer extends Component<BrightcoveIMAPlayerProps> {
     );
   };
 
+  enterPictureInPicture = () => {
+    if (Platform.OS !== 'ios') {
+      console.warn('enterPictureInPicture is only available on Android');
+      return;
+    }
+    UIManager.dispatchViewManagerCommand(
+      findNodeHandle(this),
+      UIManager.getViewManagerConfig(ComponentName).Commands.enterPictureInPicture,
+      []
+    );
+  }
+
+  exitPictureInPicture = () => {
+    if (Platform.OS !== 'ios') {
+      console.warn('exitPictureInPicture is only available on Android');
+      return;
+    }
+    UIManager.dispatchViewManagerCommand(
+      findNodeHandle(this),
+      UIManager.getViewManagerConfig(ComponentName).Commands.exitPictureInPicture,
+      []
+    );
+  }
+
   render() {
     return (
       // @ts-ignore

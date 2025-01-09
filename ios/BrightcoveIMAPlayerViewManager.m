@@ -110,4 +110,22 @@ RCT_EXPORT_METHOD(dispose:(nonnull NSNumber *)reactTag) {
     }];
 }
 
+RCT_EXPORT_METHOD(enterPictureInPicture:(nonnull NSNumber *)reactTag) {
+    [self.bridge.uiManager addUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, UIView *> *viewRegistry) {
+        BrightcoveIMAPlayerView *player = (BrightcoveIMAPlayerView*)viewRegistry[reactTag];
+        if ([player isKindOfClass:[BrightcoveIMAPlayerView class]]) {
+            [player enterPictureInPicture];
+        }
+    }];
+}
+
+RCT_EXPORT_METHOD(exitPictureInPicture:(nonnull NSNumber *)reactTag) {
+    [self.bridge.uiManager addUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, UIView *> *viewRegistry) {
+        BrightcoveIMAPlayerView *player = (BrightcoveIMAPlayerView*)viewRegistry[reactTag];
+        if ([player isKindOfClass:[BrightcoveIMAPlayerView class]]) {
+            [player exitPictureInPicture];
+        }
+    }];
+}
+
 @end
