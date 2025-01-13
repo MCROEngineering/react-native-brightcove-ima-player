@@ -452,4 +452,10 @@
     NSLog(@"failedToStartPictureInPictureWithError: %@", error.localizedDescription);
 }
 
+- (void)pictureInPictureController:(AVPictureInPictureController *)pictureInPictureController restoreUserInterfaceForPictureInPictureStopWithCompletionHandler:(void (^)(BOOL))completionHandler {
+  if (self.onMaximizePictureInPicture) {
+    self.onMaximizePictureInPicture(@{});
+  }
+}
+
 @end

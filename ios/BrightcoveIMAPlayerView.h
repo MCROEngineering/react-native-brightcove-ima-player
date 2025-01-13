@@ -50,6 +50,7 @@
 @property (nonatomic, copy) RCTDirectEventBlock onExitFullscreen;
 @property (nonatomic, copy) RCTDirectEventBlock onStartPictureInPicture;
 @property (nonatomic, copy) RCTDirectEventBlock onStopPictureInPicture;
+@property (nonatomic, copy) RCTDirectEventBlock onMaximizePictureInPicture;
 
 -(void) setupWithSettings:(NSString*)settings;
 -(void) seekTo:(NSNumber *)time;

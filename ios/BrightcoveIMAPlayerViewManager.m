@@ -40,6 +40,7 @@ RCT_EXPORT_VIEW_PROPERTY(onEnterFullscreen, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onExitFullscreen, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onStartPictureInPicture, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onStopPictureInPicture, RCTDirectEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(onMaximizePictureInPicture, RCTDirectEventBlock);
 
 RCT_CUSTOM_VIEW_PROPERTY(settings, NSDictionary, BrightcoveIMAPlayerView) {
     if ([json isKindOfClass:[NSDictionary class]]) {

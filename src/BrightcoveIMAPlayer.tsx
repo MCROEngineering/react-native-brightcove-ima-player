@@ -92,6 +92,9 @@ type BrightcoveIMAPlayerProps = ViewProps & {
   onStopPictureInPicture?: (
     event: NativeSyntheticEvent<TBrightcoveIMAPlayerEventBase>
   ) => void;
+  onMaximizePictureInPicture?: (
+    event: NativeSyntheticEvent<TBrightcoveIMAPlayerEventBase>
+  ) => void;
 };
 
 const ComponentName = 'BrightcoveIMAPlayerView';
