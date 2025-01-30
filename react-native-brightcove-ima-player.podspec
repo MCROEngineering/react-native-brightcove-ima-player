@@ -13,7 +13,9 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => "11.0" }
   s.source       = { :git => "https://github.com/NZME/react-native-brightcove-ima-player.git", :tag => "v#{s.version}" }
 
-  s.source_files = "ios/**/*.{h,m,mm}"
+  s.source_files = "ios/**/*.{h,m,mm,swift}"
+
+  s.swift_version = "5.0"
 
   s.dependency "React-Core"
   s.dependency 'Google-Mobile-Ads-SDK', '11.2.0'
