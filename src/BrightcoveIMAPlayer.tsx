@@ -43,6 +43,7 @@ type BrightcoveIMAPlayerProps = ViewProps & {
   accountId: string;
   policyKey: string;
   videoId: string;
+  isAudioOnly?: boolean;
   settings: TBrightcoveIMAPlayerSettings;
   autoPlay?: boolean;
   play?: boolean;
@@ -66,7 +67,9 @@ type BrightcoveIMAPlayerProps = ViewProps & {
   /**
    * Android only
    */
-  onVideoPlay?: (event: NativeSyntheticEvent<TBrightcoveIMAPlayerEventBase>) => void;
+  onVideoPlay?: (
+    event: NativeSyntheticEvent<TBrightcoveIMAPlayerEventBase>
+  ) => void;
   onPause?: (
     event: NativeSyntheticEvent<TBrightcoveIMAPlayerEventBase>
   ) => void;
@@ -167,7 +170,9 @@ export class BrightcoveIMAPlayer extends Component<BrightcoveIMAPlayerProps> {
   destroy = () => {
     UIManager.dispatchViewManagerCommand(
       findNodeHandle(this),
-      Platform.OS === 'ios' ? UIManager.getViewManagerConfig(ComponentName).Commands.stopPlayback : UIManager.getViewManagerConfig(ComponentName).Commands.destroy,
+      Platform.OS === 'ios'
+        ? UIManager.getViewManagerConfig(ComponentName).Commands.stopPlayback
+        : UIManager.getViewManagerConfig(ComponentName).Commands.destroy,
       []
     );
   };
@@ -195,10 +200,11 @@ export class BrightcoveIMAPlayer extends Component<BrightcoveIMAPlayerProps> {
     }
     UIManager.dispatchViewManagerCommand(
       findNodeHandle(this),
-      UIManager.getViewManagerConfig(ComponentName).Commands.enterPictureInPicture,
+      UIManager.getViewManagerConfig(ComponentName).Commands
+        .enterPictureInPicture,
       []
     );
-  }
+  };
 
   exitPictureInPicture = () => {
     if (Platform.OS !== 'ios') {
@@ -207,10 +213,11 @@ export class BrightcoveIMAPlayer extends Component<BrightcoveIMAPlayerProps> {
     }
     UIManager.dispatchViewManagerCommand(
       findNodeHandle(this),
-      UIManager.getViewManagerConfig(ComponentName).Commands.exitPictureInPicture,
+      UIManager.getViewManagerConfig(ComponentName).Commands
+        .exitPictureInPicture,
       []
     );
-  }
+  };
 
   render() {
     return (

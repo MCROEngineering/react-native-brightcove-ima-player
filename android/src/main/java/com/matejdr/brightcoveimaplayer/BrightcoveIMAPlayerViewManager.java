@@ -78,6 +78,11 @@ public class BrightcoveIMAPlayerViewManager extends SimpleViewManager<Brightcove
     view.setVideoId(videoId);
   }
 
+  @ReactProp(name = "isAudioOnly")
+  public void setIsAudioOnly(BrightcoveIMAPlayerView view, boolean isAudioOnly) {
+    view.setIsAudioOnly(isAudioOnly);
+  }
+
   @ReactProp(name = "autoPlay")
   public void setAutoPlay(BrightcoveIMAPlayerView view, boolean autoPlay) {
     view.setAutoPlay(autoPlay);

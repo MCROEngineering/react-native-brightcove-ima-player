@@ -1,7 +1,11 @@
 package com.matejdr.brightcoveimaplayer;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.graphics.Color;
-import android.text.format.DateUtils;
+import android.os.Build;
 import android.util.Log;
 import android.view.Choreographer;
 import android.view.SurfaceView;
@@ -9,9 +13,14 @@ import android.view.View;
 import android.widget.RelativeLayout;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.OptIn;
 import androidx.core.view.ViewCompat;
+import androidx.media3.common.PlaybackParameters;
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector;
+import androidx.media3.exoplayer.trackselection.MappingTrackSelector;
 
-import com.brightcove.ima.GoogleIMAEventType;
 import com.brightcove.player.display.ExoPlayerVideoDisplayComponent;
 import com.brightcove.player.edge.Catalog;
 import com.brightcove.player.edge.CatalogError;
@@ -24,6 +33,8 @@ import com.brightcove.player.mediacontroller.BrightcoveMediaController;
 import com.brightcove.player.model.Video;
 import com.brightcove.player.network.HttpRequestConfig;
 import com.brightcove.player.pictureinpicture.PictureInPictureManager;
+import com.brightcove.player.playback.PlaybackNotification;
+import com.brightcove.player.playback.PlaybackNotificationConfig;
 import com.brightcove.player.view.BrightcoveExoPlayerVideoView;
 import com.brightcove.ssai.SSAIComponent;
 import com.facebook.react.bridge.Arguments;
@@ -34,11 +45,8 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
-import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.PlaybackParameters;
-import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
-import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
 import com.matejdr.brightcoveimaplayer.util.FullScreenHandler;
+import com.brightcove.playback.notification.BackgroundPlaybackNotification;
 
 import java.util.HashMap;
 import java.util.List;
@@ -55,6 +63,8 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   private String policyKey;
   private String accountId;
   private String videoId;
+
+  private boolean isAudioOnly = true;
 
   private String adConfigId;
   private boolean autoPlay = false;
@@ -111,6 +121,10 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
     ExoPlayerVideoDisplayComponent videoDisplayComponent = (ExoPlayerVideoDisplayComponent) this.brightcoveVideoView.getVideoDisplay();
     videoDisplayComponent.setAllowHlsChunklessPreparation(false);
+
+    if (videoDisplayComponent.getPlaybackNotification() == null) {
+      videoDisplayComponent.setPlaybackNotification(createPlaybackNotification());
+    }
 
     eventEmitter.on(EventType.VIDEO_SIZE_KNOWN, new EventListener() {
       @Override
@@ -215,9 +229,18 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       }
     });
 
-    PictureInPictureManager.getInstance().setOnUserLeaveEnabled(true);
+    PictureInPictureManager.getInstance().setOnUserLeaveEnabled(!this.isAudioOnly);
     PictureInPictureManager.getInstance().registerActivity(this.context.getCurrentActivity(), this.brightcoveVideoView);
     BrightcovePiPManagerProxy.getInstance().setBrightcoveIMAPlayerView(this.brightcoveVideoView);
+  }
+
+  private PlaybackNotification createPlaybackNotification() {
+    ExoPlayerVideoDisplayComponent displayComponent = ((ExoPlayerVideoDisplayComponent) brightcoveVideoView.getVideoDisplay());
+    PlaybackNotification notification = BackgroundPlaybackNotification.getInstance(this.context);
+    PlaybackNotificationConfig config = new PlaybackNotificationConfig(this.context);
+    notification.setConfig(new PlaybackNotificationConfig(this.context));
+    notification.setPlayback(displayComponent.getPlayback());
+    return notification;
   }
 
   public void setSettings(ReadableMap settings) {
@@ -244,6 +267,10 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   public void setVideoId(String videoId) {
     this.videoId = videoId;
     this.loadVideo();
+  }
+
+  public void setIsAudioOnly(boolean isAudioOnly) {
+    this.isAudioOnly = isAudioOnly;
   }
 
   public void setAdConfigId(String adConfigId) {
@@ -360,7 +387,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     }
   }
 
-  private void updateBitRate() {
+  @OptIn(markerClass = UnstableApi.class) private void updateBitRate() {
     if (this.bitRate == 0) return;
     ExoPlayerVideoDisplayComponent videoDisplay = ((ExoPlayerVideoDisplayComponent) this.brightcoveVideoView.getVideoDisplay());
     ExoPlayer player = videoDisplay.getExoPlayer();
@@ -456,7 +483,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       ReactContext reactContext = (ReactContext) BrightcoveIMAPlayerView.this.getContext();
       reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_VIDEO_PLAY, Arguments.createMap());
 
-      PictureInPictureManager.getInstance().setOnUserLeaveEnabled(true);
+      PictureInPictureManager.getInstance().setOnUserLeaveEnabled(!this.isAudioOnly);
     });
     // Enable Logging upon ad break completion.
     eventEmitter.on(EventType.AD_BREAK_COMPLETED, event -> {
