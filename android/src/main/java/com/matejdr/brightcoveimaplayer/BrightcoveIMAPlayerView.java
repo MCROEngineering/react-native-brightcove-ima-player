@@ -64,7 +64,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   private String accountId;
   private String videoId;
 
-  private boolean isAudioOnly = true;
+  private boolean isAudioOnly = false;
 
   private String adConfigId;
   private boolean autoPlay = false;
