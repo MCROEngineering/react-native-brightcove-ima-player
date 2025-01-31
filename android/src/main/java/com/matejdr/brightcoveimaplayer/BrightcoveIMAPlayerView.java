@@ -423,7 +423,9 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     plugin.addListener("didSetSource", new EventListener() {
       @Override
       public void processEvent(Event event) {
-        BrightcoveIMAPlayerView.this.brightcoveVideoView.start();
+        if (autoPlay) {
+          BrightcoveIMAPlayerView.this.brightcoveVideoView.start();
+        }
       }
     });
 
@@ -436,7 +438,9 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
           } else {
             BrightcoveIMAPlayerView.this.brightcoveVideoView.clear();
             BrightcoveIMAPlayerView.this.brightcoveVideoView.add(video);
-            BrightcoveIMAPlayerView.this.brightcoveVideoView.start();
+            if (autoPlay) {
+              BrightcoveIMAPlayerView.this.brightcoveVideoView.start();
+            }
             ReactContext reactContext = (ReactContext) BrightcoveIMAPlayerView.this.getContext();
             reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_VIDEO_PLAY, Arguments.createMap());
           }
