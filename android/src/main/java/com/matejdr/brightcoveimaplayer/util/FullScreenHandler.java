@@ -136,7 +136,9 @@ public class FullScreenHandler implements PiPModeChangedListener {
     boolean isPlaying = playerVideoView.isPlaying();
     ((ViewGroup) playerVideoView.getParent()).removeView(playerVideoView);
     mFullScreenDialog.addContentView(playerVideoView, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-    fullScreenButton.setText(R.string.nzh_brightcove_controls_exit_full_screen);
+    if (fullScreenButton != null) {
+      fullScreenButton.setText(R.string.nzh_brightcove_controls_exit_full_screen);
+    }
     mExoPlayerFullscreen = true;
     mFullScreenDialog.show();
     playerVideoView.getEventEmitter().emit(EventType.ENTER_FULL_SCREEN);
