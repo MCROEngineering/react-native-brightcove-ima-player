@@ -3,6 +3,8 @@ package com.matejdr.brightcoveimaplayer.util;
 import android.app.Dialog;
 import android.content.res.Configuration;
 import android.graphics.Typeface;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -12,7 +14,6 @@ import com.brightcove.player.event.Event;
 import com.brightcove.player.event.EventListener;
 import com.brightcove.player.event.EventType;
 import com.brightcove.player.mediacontroller.BrightcoveMediaController;
-import com.brightcove.player.pictureinpicture.PictureInPictureManager;
 import com.brightcove.player.view.BrightcoveExoPlayerVideoView;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.matejdr.brightcoveimaplayer.BrightcovePiPManagerProxy;
@@ -29,7 +30,6 @@ public class FullScreenHandler implements PiPModeChangedListener {
   private boolean mExoPlayerFullscreen = false;
   private Dialog mFullScreenDialog;
   private Button fullScreenButton;
-  private Button pictureInPictureButton;
 
   public FullScreenHandler(ThemedReactContext context, BrightcoveExoPlayerVideoView playerVideoView, RelativeLayout brightcovePlayerView) {
     this.context = context;
@@ -95,17 +95,6 @@ public class FullScreenHandler implements PiPModeChangedListener {
       });
     }
 
-        pictureInPictureButton = (Button) brightcoveVideoView.findViewById(R.id.picture_in_picture_custom);
-        if (pictureInPictureButton != null) {
-            pictureInPictureButton.setTypeface(font);
-            pictureInPictureButton.setOnClickListener(new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-                    PictureInPictureManager.getInstance().enterPictureInPictureMode();
-                  }
-      });
-          }
-
     final Button rewind = (Button) brightcoveVideoView.findViewById(R.id.rewind_custom);
     if (rewind != null) {
       rewind.setTypeface(font);
@@ -154,12 +143,13 @@ public class FullScreenHandler implements PiPModeChangedListener {
     brightcovePlayerView.addView(playerVideoView);
     playerVideoView.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
     fullScreenButton.setText(R.string.nzh_brightcove_controls_enter_full_screen);
-    brightcovePlayerView.requestLayout();
     mExoPlayerFullscreen = false;
     mFullScreenDialog.dismiss();
     final BrightcoveMediaController mediaController = this.playerVideoView.getBrightcoveMediaController();
     mediaController.show();
     playerVideoView.getEventEmitter().emit(EventType.EXIT_FULL_SCREEN);
+    brightcovePlayerView.requestLayout();
+    playerVideoView.requestLayout();
     if (isPlaying) {
       playerVideoView.start();
     }

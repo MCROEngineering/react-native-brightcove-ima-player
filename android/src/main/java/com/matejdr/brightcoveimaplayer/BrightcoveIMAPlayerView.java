@@ -1,11 +1,6 @@
 package com.matejdr.brightcoveimaplayer;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.content.Context;
 import android.graphics.Color;
-import android.os.Build;
 import android.util.Log;
 import android.view.Choreographer;
 import android.view.SurfaceView;
@@ -98,6 +93,8 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     if (this.fullScreenHandler != null) {
       this.fullScreenHandler.cleanup();
     }
+
+    this.destroy();
   }
 
   private void setup() {
@@ -109,8 +106,6 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
     this.requestLayout();
 
-    this.configurePlaybackControls(false);
-
     setupLayoutHack();
 
     ViewCompat.setTranslationZ(this, 9999);
@@ -121,10 +116,6 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
     ExoPlayerVideoDisplayComponent videoDisplayComponent = (ExoPlayerVideoDisplayComponent) this.brightcoveVideoView.getVideoDisplay();
     videoDisplayComponent.setAllowHlsChunklessPreparation(false);
-
-    if (videoDisplayComponent.getPlaybackNotification() == null) {
-      videoDisplayComponent.setPlaybackNotification(createPlaybackNotification());
-    }
 
     eventEmitter.on(EventType.VIDEO_SIZE_KNOWN, new EventListener() {
       @Override
@@ -228,17 +219,13 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_UPDATE_BUFFER_PROGRESS, event);
       }
     });
-
-    PictureInPictureManager.getInstance().setOnUserLeaveEnabled(!this.isAudioOnly);
-    PictureInPictureManager.getInstance().registerActivity(this.context.getCurrentActivity(), this.brightcoveVideoView);
-    BrightcovePiPManagerProxy.getInstance().setBrightcoveIMAPlayerView(this.brightcoveVideoView);
   }
 
   private PlaybackNotification createPlaybackNotification() {
     ExoPlayerVideoDisplayComponent displayComponent = ((ExoPlayerVideoDisplayComponent) brightcoveVideoView.getVideoDisplay());
     PlaybackNotification notification = BackgroundPlaybackNotification.getInstance(this.context);
     PlaybackNotificationConfig config = new PlaybackNotificationConfig(this.context);
-    notification.setConfig(new PlaybackNotificationConfig(this.context));
+    notification.setConfig(config);
     notification.setPlayback(displayComponent.getPlayback());
     return notification;
   }
@@ -271,6 +258,22 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
   public void setIsAudioOnly(boolean isAudioOnly) {
     this.isAudioOnly = isAudioOnly;
+
+    if (isAudioOnly) {
+      if (this.fullScreenHandler != null) {
+        this.fullScreenHandler.cleanup();
+      }
+      this.fullScreenHandler = null;
+      this.mediaController = null;
+      PictureInPictureManager.getInstance().setOnUserLeaveEnabled(false);
+
+      ExoPlayerVideoDisplayComponent videoDisplayComponent = (ExoPlayerVideoDisplayComponent) this.brightcoveVideoView.getVideoDisplay();
+      videoDisplayComponent.setAllowHlsChunklessPreparation(false);
+
+      if (videoDisplayComponent.getPlaybackNotification() == null) {
+        videoDisplayComponent.setPlaybackNotification(createPlaybackNotification());
+      }
+    }
   }
 
   public void setAdConfigId(String adConfigId) {
@@ -292,6 +295,11 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
   public void setDisableDefaultControl(boolean disabled) {
     this.disableDefaultControl = disabled;
+
+    if (this.mediaController == null) {
+      return;
+    }
+
     if (disabled) {
       this.mediaController.hide();
       this.mediaController.setShowHideTimeout(1);
@@ -302,6 +310,9 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   }
 
   public void setFullscreen(boolean fullscreen) {
+    if (this.isAudioOnly) {
+      return;
+    }
     if (fullscreen) {
       this.fullScreenHandler.openFullscreenDialog();
       this.brightcoveVideoView.getEventEmitter().emit(EventType.ENTER_FULL_SCREEN);
@@ -323,6 +334,9 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   }
 
   public void toggleFullscreen(boolean isFullscreen) {
+    if (this.isAudioOnly) {
+      return;
+    }
     if (isFullscreen) {
       this.fullScreenHandler.openFullscreenDialog();
     } else {
@@ -366,12 +380,25 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
   public void destroy() {
     if (this.brightcoveVideoView != null) {
+      ExoPlayerVideoDisplayComponent videoDisplayComponent = (ExoPlayerVideoDisplayComponent) this.brightcoveVideoView.getVideoDisplay();
+      PlaybackNotification playbackNotification = videoDisplayComponent.getPlaybackNotification();
+      if (playbackNotification != null ) {
+        videoDisplayComponent.getPlaybackNotification().cancel();
+      }
+
+      if (this.fullScreenHandler != null) {
+        this.fullScreenHandler.cleanup();
+      }
+      this.mediaController = null;
+
       this.stopPlayback();
 
-      this.brightcoveVideoView.destroyDrawingCache();
-      this.brightcoveVideoView.clear();
       this.removeAllViews();
       this.applicationContext.removeLifecycleEventListener(this);
+
+      PictureInPictureManager.getInstance().unregisterActivity(context.getCurrentActivity());
+      // Clear the Brightcove PiP manager proxy's reference
+      BrightcovePiPManagerProxy.getInstance().setBrightcoveIMAPlayerView(null);
     }
   }
 
@@ -423,6 +450,12 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     plugin.addListener("didSetSource", new EventListener() {
       @Override
       public void processEvent(Event event) {
+        if (!isAudioOnly) {
+          PictureInPictureManager.getInstance().setOnUserLeaveEnabled(true);
+          PictureInPictureManager.getInstance().registerActivity(context.getCurrentActivity(), brightcoveVideoView);
+          BrightcovePiPManagerProxy.getInstance().setBrightcoveIMAPlayerView(brightcoveVideoView);
+        }
+
         if (autoPlay) {
           BrightcoveIMAPlayerView.this.brightcoveVideoView.start();
         }
@@ -476,16 +509,21 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       PictureInPictureManager.getInstance().setOnUserLeaveEnabled(false);
     });
     eventEmitter.on("startAd", event -> {
-      this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView, true);
+      if (this.mediaController != null) {
+        this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView, true);
+      }
       PictureInPictureManager.getInstance().setOnUserLeaveEnabled(false);
     });
     // Enable Logging upon ad completion.
     eventEmitter.on(EventType.AD_COMPLETED, event -> {
       adsPlaying = false;
-      this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView, false);
 
       ReactContext reactContext = (ReactContext) BrightcoveIMAPlayerView.this.getContext();
       reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_VIDEO_PLAY, Arguments.createMap());
+
+      if (this.mediaController != null) {
+        this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView, false);
+      }
 
       PictureInPictureManager.getInstance().setOnUserLeaveEnabled(!this.isAudioOnly);
     });
@@ -500,7 +538,9 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   @Override
   public void onHostResume() {
     // handleAppStateDidChange active
-    this.configurePlaybackControls(this.adsPlaying);
+    if (!this.isAudioOnly) {
+      this.configurePlaybackControls(this.adsPlaying);
+    }
   }
 
   @Override

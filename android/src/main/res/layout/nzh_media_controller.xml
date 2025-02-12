@@ -87,16 +87,6 @@
 
   <Button
     style="@style/BorderlessButton"
-    android:id="@+id/picture_in_picture_custom"
-    android:padding="4dp"
-    android:layout_gravity="center_vertical"
-    android:layout_height="wrap_content"
-    android:layout_width="wrap_content"
-    android:visibility="visible"
-    android:text="@string/brightcove_picture_in_picture_on"/>
-
-  <Button
-    style="@style/BorderlessButton"
     android:id="@+id/full_screen_custom"
     android:padding="4dp"
     android:layout_gravity="center_vertical"
