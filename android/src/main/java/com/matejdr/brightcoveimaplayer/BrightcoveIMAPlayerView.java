@@ -396,7 +396,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       this.removeAllViews();
       this.applicationContext.removeLifecycleEventListener(this);
 
-      PictureInPictureManager.getInstance().unregisterActivity(context.getCurrentActivity());
+      BrightcovePiPManagerProxy.getInstance().unregisterActivity(context.getCurrentActivity());
       // Clear the Brightcove PiP manager proxy's reference
       BrightcovePiPManagerProxy.getInstance().setBrightcoveIMAPlayerView(null);
     }
