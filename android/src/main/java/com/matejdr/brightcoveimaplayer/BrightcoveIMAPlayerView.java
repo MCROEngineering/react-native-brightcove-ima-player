@@ -452,7 +452,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       public void processEvent(Event event) {
         if (!isAudioOnly) {
           PictureInPictureManager.getInstance().setOnUserLeaveEnabled(true);
-          PictureInPictureManager.getInstance().registerActivity(context.getCurrentActivity(), brightcoveVideoView);
+          BrightcovePiPManagerProxy.getInstance().registerActivity(context.getCurrentActivity(), brightcoveVideoView);
           BrightcovePiPManagerProxy.getInstance().setBrightcoveIMAPlayerView(brightcoveVideoView);
         }
 

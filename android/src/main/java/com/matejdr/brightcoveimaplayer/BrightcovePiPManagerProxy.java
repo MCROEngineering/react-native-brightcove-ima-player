@@ -27,7 +27,6 @@ public class BrightcovePiPManagerProxy {
 
   public void setBrightcoveIMAPlayerView(BrightcoveExoPlayerVideoView view) {
     this.brightcoveIMAPlayerView = view;
-    this.isRegisteredActivity = true;
   }
 
   public void addPiPModeChangedListener(PiPModeChangedListener listener) {
@@ -57,5 +56,9 @@ public class BrightcovePiPManagerProxy {
       this.isRegisteredActivity = false;
     }
   }
-}
 
+  public void registerActivity(Activity activity, BrightcoveExoPlayerVideoView playerVideoView) {
+    PictureInPictureManager.getInstance().registerActivity(activity, playerVideoView);
+    this.isRegisteredActivity = true;
+  }
+}
