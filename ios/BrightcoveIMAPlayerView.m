@@ -73,8 +73,6 @@
   
   _autoPlay = autoPlay;
   
-  _nowPlayingHandler = [[BrightcoveIMAPlayerNowPlayingHandler alloc] initWith:_playbackController];
-  
   self.playbackController.allowsBackgroundAudioPlayback = YES;
 }
 
@@ -148,6 +146,10 @@
 
 - (void)setAutoPlay:(BOOL)autoPlay {
   _autoPlay = autoPlay;
+}
+
+- (void)setIsAudioOnly:(BOOL)isAudioOnly {
+  _isAudioOnly = isAudioOnly;
 }
 
 - (void)setPlay:(BOOL)play {
@@ -271,7 +273,27 @@
 }
 
 -(void)dispose {
+  // Pause playback to stop further updates
+  [self.playbackController pause];
+  
+  // Remove the observer from the now playing handler
+  if (_nowPlayingHandler) {
+    [_nowPlayingHandler removePlayerRateObserver];
+  }
+  
+  // Remove remote command targets (if applicable)
+  MPRemoteCommandCenter *center = [MPRemoteCommandCenter sharedCommandCenter];
+  [center.pauseCommand removeTarget:self];
+  [center.playCommand removeTarget:self];
+  [center.changePlaybackPositionCommand removeTarget:self];
+  [center.togglePlayPauseCommand removeTarget:self];
+  
+  // Clear the now playing info so that the lockscreen widget is removed
+  [[MPNowPlayingInfoCenter defaultCenter] setNowPlayingInfo:nil];
+  
   [self.playbackController setVideos:@[]];
+  _nowPlayingHandler = nil;
+  
   self.playbackController = nil;
 }
 
@@ -318,6 +340,8 @@
       [_playbackController play];
     }
   } else if (lifecycleEvent.eventType == kBCOVPlaybackSessionLifecycleEventPlay) {
+    _nowPlayingHandler = [[BrightcoveIMAPlayerNowPlayingHandler alloc] initWith:_playbackController];
+    
     _playing = true;
     [self refreshPlaybackRate];
     if (self.onPlay) {
@@ -374,13 +398,7 @@
 }
 
 - (void)playbackController:(id<BCOVPlaybackController>)controller playbackSession:(id<BCOVPlaybackSession>)session determinedMediaType:(BCOVSourceMediaType)mediaType {
-  switch (mediaType) {
-    case BCOVSourceMediaTypeAudio:
-      [_nowPlayingHandler updateNowPlayingInfoForAudioOnly];
-      break;
-    default:
-      break;
-  }
+  [_nowPlayingHandler updateNowPlayingInfoForAudioOnly];
 }
 
 -(void)playerView:(BCOVPUIPlayerView *)playerView didTransitionToScreenMode:(BCOVPUIScreenMode)screenMode {

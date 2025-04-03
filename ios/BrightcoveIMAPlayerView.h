@@ -22,6 +22,7 @@
 @property (nonatomic) BOOL playing;
 @property (nonatomic) BOOL adsPlaying;
 @property (nonatomic) BOOL autoPlay;
+@property (nonatomic) BOOL isAudioOnly;
 @property (nonatomic) BOOL disableDefaultControl;
 @property (nonatomic) BOOL disablePictureInPicture;
 @property (nonatomic) float lastBufferProgress;

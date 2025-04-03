@@ -78,6 +78,13 @@ public final class BrightcoveIMAPlayerNowPlayingHandler: NSObject {
     let infoCenter = MPNowPlayingInfoCenter.default()
     infoCenter.nowPlayingInfo = nowPlayingInfo
   }
+  
+  @objc
+  public func removePlayerRateObserver() {
+      if let session = self.session as? NSObject {
+          session.removeObserver(self, forKeyPath: "player.rate")
+      }
+  }
 }
 
 
