@@ -13,6 +13,11 @@ public final class BrightcoveIMAPlayerNowPlayingHandler: NSObject {
   
   fileprivate weak var session: BCOVPlaybackSession?
   
+  static var activeVideoId: String?
+  
+  var videoId: String?
+  
+  
   fileprivate lazy var nowPlayingInfo: [String: AnyHashable] = [:]
   
   @objc
@@ -22,12 +27,24 @@ public final class BrightcoveIMAPlayerNowPlayingHandler: NSObject {
     playbackController.add(self)
     
     let center = MPRemoteCommandCenter.shared()
-    center.pauseCommand.addTarget { _ in
+    center.pauseCommand.addTarget { [weak self] _ in
+      guard let self = self,
+            let currentVideoId = self.videoId,
+            currentVideoId == BrightcoveIMAPlayerNowPlayingHandler.activeVideoId else {
+        return .commandFailed
+      }
+      
       playbackController.pause()
       return .success
     }
     
-    center.playCommand.addTarget { _ in
+    center.playCommand.addTarget { [weak self] _ in
+      guard let self = self,
+            let currentVideoId = self.videoId,
+            currentVideoId == BrightcoveIMAPlayerNowPlayingHandler.activeVideoId else {
+        return .commandFailed
+      }
+      
       playbackController.play()
       return .success
     }
@@ -81,9 +98,9 @@ public final class BrightcoveIMAPlayerNowPlayingHandler: NSObject {
   
   @objc
   public func removePlayerRateObserver() {
-      if let session = self.session as? NSObject {
-          session.removeObserver(self, forKeyPath: "player.rate")
-      }
+    if let session = self.session as? NSObject {
+      session.removeObserver(self, forKeyPath: "player.rate")
+    }
   }
 }
 
@@ -115,6 +132,8 @@ extension BrightcoveIMAPlayerNowPlayingHandler {
 extension BrightcoveIMAPlayerNowPlayingHandler: BCOVPlaybackSessionConsumer {
   
   public func didAdvance(to session: BCOVPlaybackSession!) {
+    self.videoId = session.video.properties[kBCOVVideoPropertyKeyId] as? String
+    BrightcoveIMAPlayerNowPlayingHandler.activeVideoId = self.videoId
     
     if let prevSession = self.session as? NSObject {
       prevSession.removeObserver(self,
