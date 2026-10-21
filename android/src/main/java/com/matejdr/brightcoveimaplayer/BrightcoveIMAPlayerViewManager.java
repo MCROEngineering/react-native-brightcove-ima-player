@@ -58,6 +58,12 @@ public class BrightcoveIMAPlayerViewManager extends SimpleViewManager<Brightcove
     return new BrightcoveIMAPlayerView(reactContext, applicationContext);
   }
 
+  @Override
+  protected void onAfterUpdateTransaction(@NonNull BrightcoveIMAPlayerView view) {
+    super.onAfterUpdateTransaction(view);
+    view.loadVideoIfNeeded();
+  }
+
   @ReactProp(name = "settings")
   public void setSettings(BrightcoveIMAPlayerView view, ReadableMap settings) {
     view.setSettings(settings);
