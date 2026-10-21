@@ -46,6 +46,7 @@ import com.brightcove.playback.notification.BackgroundPlaybackNotification;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 
 public class BrightcoveIMAPlayerView extends RelativeLayout implements LifecycleEventListener {
@@ -58,6 +59,8 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   private String policyKey;
   private String accountId;
   private String videoId;
+  private boolean videoNeedsReload = false;
+  private int videoRequestId = 0;
 
   private boolean isAudioOnly = false;
 
@@ -69,6 +72,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   private int bitRate = 0;
   private int adVideoLoadTimeout = 3000;
   private float playbackRate = 1;
+  private float volume = 1;
   private EventEmitter eventEmitter;
   private SSAIComponent plugin;
 
@@ -123,11 +127,13 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
         fixVideoLayout();
         updateBitRate();
         updatePlaybackRate();
+        updateVolume();
       }
     });
     eventEmitter.on(EventType.READY_TO_PLAY, new EventListener() {
       @Override
       public void processEvent(Event e) {
+        updateVolume();
         WritableMap event = Arguments.createMap();
         ReactContext reactContext = (ReactContext) BrightcoveIMAPlayerView.this.getContext();
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_READY, event);
@@ -236,24 +242,29 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     if (settings != null && settings.hasKey("autoPlay")) {
       this.autoPlay = settings.getBoolean("autoPlay");
     }
-    if (settings != null && settings.hasKey("adConfigId")) {
-      this.setAdConfigId(settings.getString("adConfigId"));
-    }
+    this.setAdConfigId(settings != null && settings.hasKey("adConfigId")
+      ? settings.getString("adConfigId") : null);
   }
 
   public void setPolicyKey(String policyKey) {
-    this.policyKey = policyKey;
-    this.loadVideo();
+    if (!Objects.equals(this.policyKey, policyKey)) {
+      this.policyKey = policyKey;
+      this.videoNeedsReload = true;
+    }
   }
 
   public void setAccountId(String accountId) {
-    this.accountId = accountId;
-    this.loadVideo();
+    if (!Objects.equals(this.accountId, accountId)) {
+      this.accountId = accountId;
+      this.videoNeedsReload = true;
+    }
   }
 
   public void setVideoId(String videoId) {
-    this.videoId = videoId;
-    this.loadVideo();
+    if (!Objects.equals(this.videoId, videoId)) {
+      this.videoId = videoId;
+      this.videoNeedsReload = true;
+    }
   }
 
   public void setIsAudioOnly(boolean isAudioOnly) {
@@ -277,7 +288,10 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   }
 
   public void setAdConfigId(String adConfigId) {
-    this.adConfigId = adConfigId;
+    if (!Objects.equals(this.adConfigId, adConfigId)) {
+      this.adConfigId = adConfigId;
+      this.videoNeedsReload = true;
+    }
   }
 
   public void setAutoPlay(boolean autoPlay) {
@@ -310,7 +324,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   }
 
   public void setFullscreen(boolean fullscreen) {
-    if (this.isAudioOnly) {
+    if (this.isAudioOnly || this.fullScreenHandler == null) {
       return;
     }
     if (fullscreen) {
@@ -334,7 +348,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   }
 
   public void toggleFullscreen(boolean isFullscreen) {
-    if (this.isAudioOnly) {
+    if (this.isAudioOnly || this.fullScreenHandler == null) {
       return;
     }
     if (isFullscreen) {
@@ -345,8 +359,15 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   }
 
   public void setVolume(float volume) {
+    this.volume = volume;
+    this.updateVolume();
+  }
+
+  private void updateVolume() {
+    ExoPlayerVideoDisplayComponent display = (ExoPlayerVideoDisplayComponent) this.brightcoveVideoView.getVideoDisplay();
+    if (display.getExoPlayer() == null) return;
     Map<String, Object> details = new HashMap<>();
-    details.put(Event.VOLUME, volume);
+    details.put(Event.VOLUME, this.volume);
     this.brightcoveVideoView.getEventEmitter().emit(EventType.SET_VOLUME, details);
   }
 
@@ -356,8 +377,10 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   }
 
   public void setAdVideoLoadTimeout(int adVideoLoadTimeout) {
-    this.adVideoLoadTimeout = adVideoLoadTimeout;
-    this.loadVideo();
+    if (this.adVideoLoadTimeout != adVideoLoadTimeout) {
+      this.adVideoLoadTimeout = adVideoLoadTimeout;
+      this.videoNeedsReload = true;
+    }
   }
 
   public void setPlaybackRate(float playbackRate) {
@@ -371,6 +394,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   }
 
   public void stopPlayback() {
+    ++this.videoRequestId;
     if (this.brightcoveVideoView != null) {
       this.brightcoveVideoView.stopPlayback();
       this.brightcoveVideoView.destroyDrawingCache();
@@ -434,22 +458,40 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     }
   }
 
+  // Fabric does not guarantee prop setter order. Commit the complete source once
+  // the view manager has applied account, policy, video and ad settings together.
+  public void loadVideoIfNeeded() {
+    // A Fabric view can be created after the host's resume event has already fired.
+    if (!this.isAudioOnly && this.fullScreenHandler == null) {
+      this.configurePlaybackControls(this.adsPlaying);
+    }
+    if (this.videoNeedsReload) {
+      this.loadVideo();
+    }
+  }
+
   private void loadVideo() {
-    if (this.accountId == null || this.policyKey == null) {
+    if (this.accountId == null || this.accountId.isEmpty()
+      || this.policyKey == null || this.policyKey.isEmpty()
+      || this.videoId == null || this.videoId.isEmpty()) {
       return;
     }
+    this.videoNeedsReload = false;
+    final int requestId = ++this.videoRequestId;
+    final String requestAdConfigId = this.adConfigId;
     Catalog catalog = new Catalog.Builder(eventEmitter, this.accountId)
       .setBaseURL(Catalog.DEFAULT_EDGE_BASE_URL)
       .setPolicy(this.policyKey)
       .build();
 
     HttpRequestConfig httpRequestConfig = new HttpRequestConfig.Builder()
-      .addQueryParameter(HttpRequestConfig.KEY_AD_CONFIG_ID, this.adConfigId)
+      .addQueryParameter(HttpRequestConfig.KEY_AD_CONFIG_ID, requestAdConfigId)
       .build();
 
     plugin.addListener("didSetSource", new EventListener() {
       @Override
       public void processEvent(Event event) {
+        if (requestId != videoRequestId) return;
         if (!isAudioOnly) {
           PictureInPictureManager.getInstance().setOnUserLeaveEnabled(true);
           BrightcovePiPManagerProxy.getInstance().registerActivity(context.getCurrentActivity(), brightcoveVideoView);
@@ -466,7 +508,8 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       catalog.findVideoByID(this.videoId, httpRequestConfig, new VideoListener() {
         @Override
         public void onVideo(Video video) {
-          if (adConfigId != null) {
+          if (requestId != videoRequestId) return;
+          if (requestAdConfigId != null) {
             plugin.processVideo(video);
           } else {
             BrightcoveIMAPlayerView.this.brightcoveVideoView.clear();
@@ -550,6 +593,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
   @Override
   public void onHostDestroy() {
+    ++this.videoRequestId;
     this.brightcoveVideoView.destroyDrawingCache();
     this.brightcoveVideoView.clear();
     this.removeAllViews();
