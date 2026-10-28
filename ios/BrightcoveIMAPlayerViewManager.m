@@ -12,10 +12,6 @@ RCT_EXPORT_MODULE();
     return [[BrightcoveIMAPlayerView alloc] init];
 }
 
-- (dispatch_queue_t)methodQueue {
-    return _bridge.uiManager.methodQueue;
-}
-
 RCT_EXPORT_VIEW_PROPERTY(policyKey, NSString);
 RCT_EXPORT_VIEW_PROPERTY(accountId, NSString);
 RCT_EXPORT_VIEW_PROPERTY(videoId, NSString);
