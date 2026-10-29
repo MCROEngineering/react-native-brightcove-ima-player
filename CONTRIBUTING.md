@@ -55,6 +55,20 @@ To edit the Objective-C files, open `example/ios/BrightcoveImaPlayerExample.xcwo
 
 To edit the Kotlin files, open `example/android` in Android studio and find the source files at `brightcoveimaplayer` under `Android`.
 
+### Android content start and landscape regression checks
+
+`onVideoPlay` means that main content is playing, once per loaded source. Do not infer it from `AD_COMPLETED`: a configured SSAI session may have no ads, and an individual ad can finish before the rest of its pod. `ContentPlaybackListener` waits for playing progress and, for SSAI, checks the SDK timeline against the video display's absolute stream position. The view's content-relative playhead cannot identify an ad's position in that timeline.
+
+Run the native event tests from an Android host that links this library:
+
+```sh
+./gradlew :react-native-brightcove-ima-player:testDebugUnitTest
+```
+
+The tests cover no-ad SSAI, delayed metadata, a multi-ad preroll, skipping into content, non-SSAI playback, pause/resume, source changes and late events after disposal. They simulate SDK events and timeline positions; they do not replace testing actual ad delivery.
+
+In the rebuilt host app, play an SSAI-configured video that returns no ads, rotate to both landscape orientations and verify fullscreen video keeps advancing. Return to portrait, exit fullscreen while sideways, rotate again, minimise/restore, then close and play a different video. Repeat with a stream that serves a preroll: the content-start callback must not arrive while ads are playing. Keep device audio muted during automated checks.
+
 ### Commit message convention
 
 We follow the [conventional commits specification](https://www.conventionalcommits.org/en) for our commit messages:

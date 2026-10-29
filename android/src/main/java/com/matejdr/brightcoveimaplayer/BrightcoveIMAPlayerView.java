@@ -75,6 +75,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   private float volume = 1;
   private EventEmitter eventEmitter;
   private SSAIComponent plugin;
+  private ContentPlaybackListener contentPlaybackListener;
 
   private FullScreenHandler fullScreenHandler;
   private int controlbarTimeout = 4000;
@@ -117,6 +118,21 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     eventEmitter = this.brightcoveVideoView.getEventEmitter();
 
     setupSSAI();
+
+    contentPlaybackListener = new ContentPlaybackListener(eventEmitter,
+      new ContentPlaybackListener.PlaybackState() {
+        public long getAbsolutePosition() {
+          return brightcoveVideoView.getVideoDisplay().getPlayerCurrentPosition();
+        }
+        public boolean isPlaying() {
+          return brightcoveVideoView.isPlaying();
+        }
+      },
+      () -> {
+        ReactContext reactContext = (ReactContext) this.getContext();
+        reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(this.getId(),
+          BrightcoveIMAPlayerViewManager.EVENT_VIDEO_PLAY, Arguments.createMap());
+      });
 
     ExoPlayerVideoDisplayComponent videoDisplayComponent = (ExoPlayerVideoDisplayComponent) this.brightcoveVideoView.getVideoDisplay();
     videoDisplayComponent.setAllowHlsChunklessPreparation(false);
@@ -395,6 +411,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
 
   public void stopPlayback() {
     ++this.videoRequestId;
+    this.contentPlaybackListener.stop();
     if (this.brightcoveVideoView != null) {
       this.brightcoveVideoView.stopPlayback();
       this.brightcoveVideoView.destroyDrawingCache();
@@ -477,6 +494,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
       return;
     }
     this.videoNeedsReload = false;
+    this.contentPlaybackListener.stop();
     final int requestId = ++this.videoRequestId;
     final String requestAdConfigId = this.adConfigId;
     Catalog catalog = new Catalog.Builder(eventEmitter, this.accountId)
@@ -509,6 +527,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
         @Override
         public void onVideo(Video video) {
           if (requestId != videoRequestId) return;
+          contentPlaybackListener.startSource(requestAdConfigId != null);
           if (requestAdConfigId != null) {
             plugin.processVideo(video);
           } else {
@@ -517,8 +536,6 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
             if (autoPlay) {
               BrightcoveIMAPlayerView.this.brightcoveVideoView.start();
             }
-            ReactContext reactContext = (ReactContext) BrightcoveIMAPlayerView.this.getContext();
-            reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_VIDEO_PLAY, Arguments.createMap());
           }
         }
 
@@ -561,9 +578,6 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
     eventEmitter.on(EventType.AD_COMPLETED, event -> {
       adsPlaying = false;
 
-      ReactContext reactContext = (ReactContext) BrightcoveIMAPlayerView.this.getContext();
-      reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcoveIMAPlayerView.this.getId(), BrightcoveIMAPlayerViewManager.EVENT_VIDEO_PLAY, Arguments.createMap());
-
       if (this.mediaController != null) {
         this.mediaController = this.fullScreenHandler.initMediaController(this.brightcoveVideoView, false);
       }
@@ -594,6 +608,7 @@ public class BrightcoveIMAPlayerView extends RelativeLayout implements Lifecycle
   @Override
   public void onHostDestroy() {
     ++this.videoRequestId;
+    this.contentPlaybackListener.stop();
     this.brightcoveVideoView.destroyDrawingCache();
     this.brightcoveVideoView.clear();
     this.removeAllViews();
