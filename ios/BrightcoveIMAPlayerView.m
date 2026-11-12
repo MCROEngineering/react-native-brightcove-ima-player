@@ -297,6 +297,7 @@
 }
 
 -(void)enterPictureInPicture {
+  [self refreshPictureInPictureSource];
   [self.playbackController.pictureInPictureController startPictureInPicture];
 }
 
@@ -454,6 +455,46 @@
 }
 
 #pragma mark - BCOVPUIPlayerViewDelegate Methods
+
+- (AVPlayerLayer *)playerLayerForPlayer:(AVPlayer *)player inLayer:(CALayer *)layer
+{
+  if ([layer isKindOfClass:AVPlayerLayer.class] && ((AVPlayerLayer *)layer).player == player) {
+    return (AVPlayerLayer *)layer;
+  }
+  for (CALayer *sublayer in layer.sublayers) {
+    AVPlayerLayer *playerLayer = [self playerLayerForPlayer:player inLayer:sublayer];
+    if (playerLayer) return playerLayer;
+  }
+  return nil;
+}
+
+- (void)refreshPictureInPictureSource
+{
+  if (@available(iOS 15.0, *)) {
+    AVPictureInPictureController *controller = self.playbackController.pictureInPictureController;
+    AVPlayer *player = self.playbackSession.player;
+    if (_disablePictureInPicture || !controller || !player || player.externalPlaybackActive ||
+        controller.pictureInPictureActive || controller.pictureInPictureSuspended) return;
+
+    UIView *playbackView = self.playbackController.view;
+    if (!playbackView.window) return;
+    AVPlayerLayer *playerLayer = [self playerLayerForPlayer:player inLayer:playbackView.layer];
+    AVPlayerLayer *sourceLayer = controller.contentSource.playerLayer ?: controller.playerLayer;
+    if (playerLayer && playerLayer != sourceLayer) {
+      // AirPlay can replace Brightcove's rendering layer while PiP retains the
+      // detached original. Keep the existing controller and its SDK delegate.
+      controller.contentSource = [[AVPictureInPictureControllerContentSource alloc] initWithPlayerLayer:playerLayer];
+    }
+  }
+}
+
+- (void)routePickerViewDidEndPresentingRoutes:(AVRoutePickerView *)routePickerView
+{
+  // Let the SDK finish restoring its rendering view after the route sheet.
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [self refreshPictureInPictureSource];
+  });
+}
 
 - (void)pictureInPictureControllerDidStartPictureInPicture:(AVPictureInPictureController *)pictureInPictureController
 {
