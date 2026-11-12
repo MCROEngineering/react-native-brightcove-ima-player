@@ -4,11 +4,14 @@
 
 React Native implementation of Brightcove Player native SDK video player.
 
-## Brightcove SDK Version used
+## Native SDK versions
 
-- Minimum Required version of iOS is 11
-- iOS Brightcove-Player-IMA 6.10.6
-- com.brightcove.player:android-ima-plugin 6.18.6
+- iOS: Brightcove Core and SSAI **7.2.25**, requiring iOS **12.0** or later.
+- Android: Brightcove SDK and plugins **10.4.32**, requiring Android API **21** or later. Google IMA is aligned with Brightcove's **3.37.0** dependency.
+
+The host's React Native version and other dependencies may require higher minimum OS versions. The React Native player API is unchanged; the existing lifecycle, fullscreen, SSAI and Now Playing integration remains in this wrapper.
+
+See the [SDK upgrade checkpoint](docs/native-sdk-upgrade.md) for migration details, completed checks and remaining validation.
 
 ## Installation
 
@@ -18,19 +21,36 @@ npm install react-native-brightcove-ima-player
 
 ### iOS
 
-- Add source to `Podfile` and `pod install && pod update`
-- Specify platform version to `11.0`
+- Add Brightcove's source to `Podfile` and use iOS `12.0` or later.
+- For CocoaPods hosts using static libraries, enable module maps for the Brightcove pods inside the app target so the Swift wrapper can import them.
 
 ```rb
 source 'https://github.com/brightcove/BrightcoveSpecs.git'
 
-platform :ios, '11.0'
+platform :ios, '12.0'
+
+target 'YourApp' do
+  # Alongside the host's React Native/autolinking setup:
+  pod 'Brightcove-Player-Core', :modular_headers => true
+  pod 'Brightcove-Player-SSAI', :modular_headers => true
+end
 ```
+
+When upgrading an existing installation, refresh Brightcove's spec repository and update only the player dependencies:
+
+```sh
+pod repo update brightcove-brightcovespecs # Use the name shown by `pod repo list`.
+pod update Brightcove-Player-Core Brightcove-Player-SSAI react-native-brightcove-ima-player --no-repo-update
+```
+
+Brightcove has deprecated CocoaPods distribution but still publishes these versions. This update retains CocoaPods; migrating the host to Swift Package Manager is separate work.
 
 ### Android
 
 - Add maven source to repositories in `android/build.gradle`
 - [Enables multiDex](https://developer.android.com/studio/build/multidex).
+- Use a current Android toolchain (the library's standalone AGP default is `8.10.1`), compile SDK 36 or later, and min SDK 21 or later. Existing `BrightcoveImaPlayer_*SdkVersion` host overrides remain supported.
+- Enable core library desugaring in the **app module** and use `desugar_jdk_libs` **2.1.3 or later**. The library also declares this requirement; a host pin to `2.0.4` fails the Android dependency metadata check.
 
 ```gradle
 allprojects {
@@ -41,6 +61,22 @@ allprojects {
   }
 }
 ```
+
+In `android/app/build.gradle`:
+
+```gradle
+android {
+  compileOptions {
+    coreLibraryDesugaringEnabled true
+  }
+}
+
+dependencies {
+  coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.3'
+}
+```
+
+Rebuild both native apps after updating the package; a JavaScript reload does not replace native SDKs. When another player shares Media3, verify the version selected by Gradle and test both integrations rather than forcing a downgrade.
 
 ## Usage
 

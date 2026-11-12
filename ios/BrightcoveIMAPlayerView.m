@@ -11,14 +11,14 @@
 
 - (instancetype)initWithFrame:(CGRect)frame {
   if (self = [super initWithFrame:frame]) {
-    //        [self setup];
+    _targetVolume = 1.0;
   }
   return self;
 }
 
 - (id) init
 {
-  self = [super init];
+  self = [self initWithFrame:CGRectZero];
   if (!self) return nil;
   
   for (NSString *name in @[
@@ -41,7 +41,6 @@
   NSError *error = nil;
   [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&error];
   
-  _targetVolume = 1.0;
   _inViewPort = YES;
   
   [self setupPlaybackController:settings];
@@ -113,9 +112,9 @@
   if (_videoId) {
     NSMutableDictionary *parameters = [[NSMutableDictionary alloc] init];
     if (_adConfigId) {
-      parameters[kBCOVPlaybackServiceParamaterKeyAdConfigId] = _adConfigId;
+      parameters[BCOVPlaybackService.ParamaterKeyAdConfigId] = _adConfigId;
     }
-    NSDictionary *configuration = @{kBCOVPlaybackServiceConfigurationKeyAssetID:_videoId};
+    NSDictionary *configuration = @{BCOVPlaybackService.ConfigurationKeyAssetID:_videoId};
     [_playbackService findVideoWithConfiguration:configuration queryParameters:parameters completion:^(BCOVVideo *video, NSDictionary *jsonResponse, NSError *error) {
       if (video != nil) {
         [self.playbackController setVideos: @[ video ]];

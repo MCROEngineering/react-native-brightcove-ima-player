@@ -1,15 +1,6 @@
 #import <UIKit/UIKit.h>
-#import <BrightcovePlayerSDK/BCOVPlayerSDKManager.h>
-#import <BrightcovePlayerSDK/BCOVPlaybackController.h>
-#import <BrightcovePlayerSDK/BCOVPlaybackService.h>
-#import <BrightcovePlayerSDK/BCOVPUIPlayerView.h>
-#import <BrightcovePlayerSDK/BCOVBasicSessionProvider.h>
-#import <BrightcovePlayerSDK/BCOVPlayerSDKManager.h>
-#import <BrightcovePlayerSDK/BCOVPUIBasicControlView.h>
-#import <BrightcovePlayerSDK/BCOVPlaybackSession.h>
-#import <BrightcovePlayerSDK/BCOVPUISlider.h>
-#import <BrightcovePlayerSDK/BCOVOfflineVideoManager.h>
-#import <BrightcoveSSAI/BrightcoveSSAI.h>
+@import BrightcovePlayerSDK;
+@import BrightcoveSSAI;
 #import <React/RCTBridge.h>
 #import <React/UIView+React.h>
 
@@ -53,7 +44,8 @@
 @property (nonatomic, copy) RCTDirectEventBlock onStopPictureInPicture;
 @property (nonatomic, copy) RCTDirectEventBlock onMaximizePictureInPicture;
 
--(void) setupWithSettings:(NSString*)settings;
+-(void) setupWithSettings:(NSDictionary*)settings;
+-(void) setPlay:(BOOL)play;
 -(void) seekTo:(NSNumber *)time;
 -(void) toggleFullscreen:(BOOL)isFullscreen;
 -(void) toggleInViewPort:(BOOL)inViewPort;

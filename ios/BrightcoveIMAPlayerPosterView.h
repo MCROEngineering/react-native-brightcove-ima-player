@@ -1,6 +1,5 @@
 #import <UIKit/UIKit.h>
-#import <BrightcovePlayerSDK/BCOVPlayerSDKManager.h>
-#import <BrightcovePlayerSDK/BCOVPlaybackService.h>
+@import BrightcovePlayerSDK;
 #import <React/RCTBridge.h>
 #import <React/UIView+React.h>
 
