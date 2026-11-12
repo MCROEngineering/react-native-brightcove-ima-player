@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import MediaPlayer
 import BrightcovePlayerSDK
 
 @objcMembers
@@ -61,9 +62,9 @@ public final class BrightcoveIMAPlayerNowPlayingHandler: NSObject {
     }
     
     center.togglePlayPauseCommand.addTarget { [self] _ in
-      guard let session else { return .commandFailed }
+      guard let player = session?.player else { return .commandFailed }
       
-      if session.player.timeControlStatus == .paused {
+      if player.timeControlStatus == .paused {
         playbackController.play()
       } else {
         playbackController.pause()
@@ -75,7 +76,7 @@ public final class BrightcoveIMAPlayerNowPlayingHandler: NSObject {
   
   @objc
   public func updateNowPlayingInfoForAudioOnly() {
-    guard let customFields = session?.video.properties["custom_fields"] as? [String: Any] else {
+    guard let customFields = session?.video?.properties["custom_fields"] as? [String: Any] else {
       return
     }
     
@@ -132,7 +133,8 @@ extension BrightcoveIMAPlayerNowPlayingHandler {
 extension BrightcoveIMAPlayerNowPlayingHandler: BCOVPlaybackSessionConsumer {
   
   public func didAdvance(to session: BCOVPlaybackSession!) {
-    self.videoId = session.video.properties[kBCOVVideoPropertyKeyId] as? String
+    guard let session else { return }
+    self.videoId = session.video?.properties[BCOVVideo.PropertyKeyId] as? String
     BrightcoveIMAPlayerNowPlayingHandler.activeVideoId = self.videoId
     
     if let prevSession = self.session as? NSObject {
@@ -151,8 +153,8 @@ extension BrightcoveIMAPlayerNowPlayingHandler: BCOVPlaybackSessionConsumer {
     
     nowPlayingInfo = [String: AnyHashable]()
     
-    guard let videoName = session.video.properties[kBCOVVideoPropertyKeyName],
-          let durationNum = session.video.properties[kBCOVVideoPropertyKeyDuration] as? NSNumber else {
+    guard let videoName = session.video?.properties[BCOVVideo.PropertyKeyName],
+          let durationNum = session.video?.properties[BCOVVideo.PropertyKeyDuration] as? NSNumber else {
       return
     }
     
@@ -165,7 +167,7 @@ extension BrightcoveIMAPlayerNowPlayingHandler: BCOVPlaybackSessionConsumer {
     let infoCenter = MPNowPlayingInfoCenter.default()
     infoCenter.nowPlayingInfo = nowPlayingInfo
     
-    if let posterURL = session.video.properties[kBCOVVideoPropertyKeyPoster] as? String,
+    if let posterURL = session.video?.properties[BCOVVideo.PropertyKeyPoster] as? String,
        let url = URL(string: posterURL) {
       DispatchQueue.global(qos: .background).async { [self] in
         do {

@@ -17,7 +17,11 @@ RCT_EXPORT_VIEW_PROPERTY(accountId, NSString);
 RCT_EXPORT_VIEW_PROPERTY(videoId, NSString);
 RCT_EXPORT_VIEW_PROPERTY(autoPlay, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(isAudioOnly, BOOL);
-RCT_EXPORT_VIEW_PROPERTY(play, BOOL);
+// The view's -play method is an imperative command, not a BOOL getter.
+// RCT_EXPORT_VIEW_PROPERTY would invoke it while caching the prop's default.
+RCT_CUSTOM_VIEW_PROPERTY(play, BOOL, BrightcoveIMAPlayerView) {
+    [view setPlay:json ? [RCTConvert BOOL:json] : NO];
+}
 RCT_EXPORT_VIEW_PROPERTY(fullscreen, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(disableDefaultControl, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(disablePictureInPicture, BOOL);

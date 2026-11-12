@@ -53,10 +53,10 @@
 - (void)loadPoster {
     if (!_playbackService) return;
     if (_videoId) {
-        NSDictionary *configuration = @{kBCOVPlaybackServiceConfigurationKeyAssetID:_videoId};
+        NSDictionary *configuration = @{BCOVPlaybackService.ConfigurationKeyAssetID:_videoId};
         [_playbackService findVideoWithConfiguration:configuration queryParameters:@{} completion:^(BCOVVideo *video, NSDictionary *jsonResponse, NSError *error) {
             if (video) {
-                [self loadImage:video.properties[kBCOVVideoPropertyKeyPoster]];
+                [self loadImage:video.properties[BCOVVideo.PropertyKeyPoster]];
             }
         }];
     }
