@@ -1,7 +1,11 @@
 #import "BrightcoveIMAPlayerView.h"
 #import <React/RCTUtils.h>
 #import <AVKit/AVKit.h>
+#if __has_include(<react_native_brightcove_ima_player/react_native_brightcove_ima_player-Swift.h>)
+#import <react_native_brightcove_ima_player/react_native_brightcove_ima_player-Swift.h>
+#else
 #import <react_native_brightcove_ima_player-Swift.h>
+#endif
 
 @interface BrightcoveIMAPlayerView () <BCOVPlaybackControllerDelegate, BCOVPUIPlayerViewDelegate, BCOVPlaybackControllerAdsDelegate>
 @property (nonatomic, strong) BrightcoveIMAPlayerNowPlayingHandler *nowPlayingHandler;
